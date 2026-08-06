@@ -371,6 +371,9 @@ void StreamCommandLineParser::parse(const QStringList &args, StreamingPreference
     parser.addChoiceOption("capture-system-keys", "capture system key combos", m_CaptureSysKeysModeMap.keys());
     parser.addChoiceOption("video-codec", "video codec", m_VideoCodecMap.keys());
     parser.addChoiceOption("video-decoder", "video decoder", m_VideoDecoderMap.keys());
+#ifdef Q_OS_WIN32
+    parser.addValueOption("embed-hwnd", "a native window handle (decimal) to create the stream window inside");
+#endif
 
     if (!parser.parse(args)) {
         parser.showError(parser.errorText());
@@ -506,6 +509,17 @@ void StreamCommandLineParser::parse(const QStringList &args, StreamingPreference
         preferences->videoDecoderSelection = mapValue(m_VideoDecoderMap, parser.getChoiceOptionValue("video-decoder"));
     }
 
+#ifdef Q_OS_WIN32
+    // Resolve --embed-hwnd option
+    if (parser.isSet("embed-hwnd")) {
+        bool ok;
+        m_EmbedHwnd = parser.value("embed-hwnd").toULongLong(&ok);
+        if (!ok || m_EmbedHwnd == 0) {
+            parser.showError(QString("Invalid embed-hwnd value: %1").arg(parser.value("embed-hwnd")));
+        }
+    }
+#endif
+
     // This method will not return and terminates the process if --version or
     // --help is specified
     parser.handleHelpAndVersionOptions();
@@ -531,6 +545,11 @@ QString StreamCommandLineParser::getHost() const
 QString StreamCommandLineParser::getAppName() const
 {
     return m_AppName;
+}
+
+qulonglong StreamCommandLineParser::getEmbedHwnd() const
+{
+    return m_EmbedHwnd;
 }
 
 ListCommandLineParser::ListCommandLineParser()

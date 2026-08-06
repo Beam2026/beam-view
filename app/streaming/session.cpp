@@ -7,6 +7,11 @@
 #include "SDL_compat.h"
 #include "utils.h"
 
+#ifdef Q_OS_WIN32
+// For reparenting the stream window under --embed-hwnd
+#include <SDL_syswm.h>
+#endif
+
 #ifdef HAVE_FFMPEG
 #include "video/ffmpeg.h"
 #endif
@@ -574,6 +579,7 @@ Session::Session(NvComputer* computer, NvApp& app, StreamingPreferences *prefere
       m_DecoderLock(SDL_CreateMutex()),
       m_AudioMuted(false),
       m_QtWindow(nullptr),
+      m_EmbedParent(0),
       m_UnexpectedTermination(true), // Failure prior to streaming is unexpected
       m_InputHandler(nullptr),
       m_MouseEmulationRefCount(0),
@@ -1504,6 +1510,11 @@ void Session::updateOptimalWindowDisplayMode()
 
 void Session::toggleFullscreen()
 {
+    // An embedded child window has no full-screen state to toggle
+    if (m_EmbedParent != 0) {
+        return;
+    }
+
     bool fullScreen = !(SDL_GetWindowFlags(m_Window) & m_FullScreenFlag);
 
 #if defined(Q_OS_WIN32) || defined(Q_OS_DARWIN)
@@ -1733,6 +1744,14 @@ void Session::flushWindowEvents()
     SDL_PushEvent(&flushEvent);
 }
 
+void Session::setEmbedParentWindow(quintptr handle)
+{
+    m_EmbedParent = handle;
+
+    // The parent decides where the picture goes; full-screen would fight it.
+    m_IsFullScreen = false;
+}
+
 void Session::setShouldExit(bool quitHostApp)
 {
     // If the caller has explicitly asked us to quit the host app,
@@ -1795,7 +1814,20 @@ void Session::exec()
     QCoreApplication::sendPostedEvents();
 
     int x, y, width, height;
-    getWindowDimensions(x, y, width, height);
+#ifdef Q_OS_WIN32
+    RECT embedClientRect;
+    if (m_EmbedParent != 0 && GetClientRect((HWND)m_EmbedParent, &embedClientRect)) {
+        // Fill the parent's client area. The parent owns our position and
+        // size from here on and resizes us like any other child window.
+        x = y = 0;
+        width = qMax(1, (int)embedClientRect.right);
+        height = qMax(1, (int)embedClientRect.bottom);
+    }
+    else
+#endif
+    {
+        getWindowDimensions(x, y, width, height);
+    }
 
 #ifdef STEAM_LINK
     // We need a little delay before creating the window or we will trigger some kind
@@ -1815,6 +1847,15 @@ void Session::exec()
 
     // We always want a resizable window with High DPI enabled
     Uint32 defaultWindowFlags = SDL_WINDOW_ALLOW_HIGHDPI | SDL_WINDOW_RESIZABLE;
+
+#ifdef Q_OS_WIN32
+    if (m_EmbedParent != 0) {
+        // Created hidden so it can be restyled and reparented into the
+        // caller's window before it ever appears on screen; borderless
+        // because a child window has no frame of its own.
+        defaultWindowFlags |= SDL_WINDOW_HIDDEN | SDL_WINDOW_BORDERLESS;
+    }
+#endif
 
     // If we're starting in windowed mode and the Moonlight GUI is maximized or
     // minimized, match that with the streaming window.
@@ -1877,6 +1918,44 @@ void Session::exec()
     }
 
     m_InputHandler->setWindow(m_Window);
+
+#ifdef Q_OS_WIN32
+    if (m_EmbedParent != 0) {
+        SDL_SysWMinfo wmInfo;
+        SDL_VERSION(&wmInfo.version);
+        if (SDL_GetWindowWMInfo(m_Window, &wmInfo) && wmInfo.subsystem == SDL_SYSWM_WINDOWS) {
+            HWND streamHwnd = wmInfo.info.win.window;
+
+            // Restyle to a child and reparent while still hidden, so the
+            // window never exists on screen as a top-level popup: no flash,
+            // no taskbar entry, nothing to hide from the outside.
+            LONG_PTR style = GetWindowLongPtr(streamHwnd, GWL_STYLE);
+            style &= ~(WS_POPUP | WS_CAPTION | WS_THICKFRAME |
+                       WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_SYSMENU);
+            style |= WS_CHILD;
+            SetWindowLongPtr(streamHwnd, GWL_STYLE, style);
+
+            SetParent(streamHwnd, (HWND)m_EmbedParent);
+            SetWindowPos(streamHwnd, nullptr, 0, 0, width, height,
+                         SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED);
+
+            SDL_ShowWindow(m_Window);
+        }
+        else {
+            SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
+                         "Unable to embed the stream window: %s",
+                         SDL_GetError());
+
+            delete m_InputHandler;
+            m_InputHandler = nullptr;
+            SDL_DestroyWindow(m_Window);
+            m_Window = nullptr;
+            SDL_QuitSubSystem(SDL_INIT_VIDEO);
+            QThreadPool::globalInstance()->start(new DeferredSessionCleanupTask(this));
+            return;
+        }
+    }
+#endif
 
     QSvgRenderer svgIconRenderer(QString(":/res/moonlight.svg"));
     QImage svgImage(ICON_SIZE, ICON_SIZE, QImage::Format_RGBA8888);

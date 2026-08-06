@@ -21,7 +21,10 @@ class StreamRunner : public QObject
     Q_OBJECT
 
 public:
-    explicit StreamRunner(CliStartStream::Launcher* launcher, QObject* parent = nullptr);
+    // embedHwnd is a native window handle to embed the stream window into,
+    // or 0 to stream into a normal top-level window
+    StreamRunner(CliStartStream::Launcher* launcher, qulonglong embedHwnd,
+                 QObject* parent = nullptr);
 
     void run(ComputerManager* computerManager);
 
@@ -35,6 +38,7 @@ private slots:
 
 private:
     CliStartStream::Launcher* m_Launcher;
+    qulonglong m_EmbedHwnd;
     Session* m_Session;
     bool m_ErrorReported;
 };

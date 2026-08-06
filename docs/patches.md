@@ -4,7 +4,15 @@ Five changes, deliberately separate. Rebasing onto upstream is the permanent cos
 it scales with how tangled the patches are — so one concern per commit, and resist the urge to
 "tidy while I'm in here". Unrelated cleanup makes future rebases hurt for no benefit.
 
-Nothing here is implemented yet. The base is a pinned upstream commit on the `beam` branch.
+The base is a pinned upstream commit on the `beam` branch. Status (August 2026):
+
+| Patch | Status |
+| --- | --- |
+| P1 — Identity | **Implemented** — one commit on `beam` |
+| P2 — `--embed-hwnd` | **Implemented** — one commit on `beam` |
+| P3 — No UI of its own | **Implemented** — status helper in `app/beamstatus.{h,cpp}`, headless runners in `app/cli/headless.{h,cpp}` |
+| P4 — Headless `pair`/`quit` | **Implemented** — including idempotent re-pair |
+| P5 — Baked-in defaults | Not implemented, deliberately (lowest value; the CLI is manageable) |
 
 ---
 
@@ -64,6 +72,13 @@ beam: first-frame
 beam: error <code> <text>
 beam: ended <reason>
 ```
+
+As implemented: error codes are 1 launch failed, 2 connection stage failed, 3 session
+error/termination, 4 pairing failed, 5 quit failed; `<reason>` is `clean` or `error`; every line is
+flushed immediately (stdout is a fully buffered pipe under Beam). `beam: first-frame` is emitted
+from `Pacer::renderFrame()`, the one funnel every rendered frame passes through. When stderr is a
+pipe, logging below Error level is suppressed so an undrained pipe buffer cannot fill up and block
+this process — Beam should still drain both pipes once its reader lands.
 
 `beam: first-frame` matters most. Beam currently infers the moment to reveal the window by watching
 its own tunnel agent for the RTSP connection on port 48010 and then waiting 1.5 s — a guess biased

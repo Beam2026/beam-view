@@ -125,6 +125,11 @@ public:
 
     void setShouldExit(bool quitHostApp = false);
 
+    // Makes the stream window a WS_CHILD of the given native window handle
+    // (Windows only). Must be called before start(). Forces windowed mode:
+    // the caller owns our size and position from then on.
+    void setEmbedParentWindow(quintptr handle);
+
 signals:
     void stageStarting(QString stage);
 
@@ -258,6 +263,7 @@ private:
     bool m_AudioMuted;
     Uint32 m_FullScreenFlag;
     QQuickWindow* m_QtWindow;
+    quintptr m_EmbedParent;
     bool m_UnexpectedTermination;
     SdlInputHandler* m_InputHandler;
     int m_MouseEmulationRefCount;

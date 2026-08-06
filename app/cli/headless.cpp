@@ -9,9 +9,11 @@
 namespace CliHeadless
 {
 
-StreamRunner::StreamRunner(CliStartStream::Launcher* launcher, QObject* parent)
+StreamRunner::StreamRunner(CliStartStream::Launcher* launcher, qulonglong embedHwnd,
+                           QObject* parent)
     : QObject(parent),
       m_Launcher(launcher),
+      m_EmbedHwnd(embedHwnd),
       m_Session(nullptr),
       m_ErrorReported(false)
 {
@@ -34,6 +36,10 @@ void StreamRunner::onSessionCreated(QString appName, Session* session)
     Q_UNUSED(appName);
 
     m_Session = session;
+
+    if (m_EmbedHwnd != 0) {
+        session->setEmbedParentWindow((quintptr)m_EmbedHwnd);
+    }
 
     connect(session, &Session::stageFailed,
             this, &StreamRunner::onStageFailed);

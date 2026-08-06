@@ -63,10 +63,12 @@ public:
 
     QString getHost() const;
     QString getAppName() const;
+    qulonglong getEmbedHwnd() const;
 
 private:
     QString m_Host;
     QString m_AppName;
+    qulonglong m_EmbedHwnd = 0;
     QMap<QString, StreamingPreferences::WindowMode> m_WindowModeMap;
     QMap<QString, StreamingPreferences::AudioConfig> m_AudioConfigMap;
     QMap<QString, StreamingPreferences::VideoCodecConfig> m_VideoCodecMap;

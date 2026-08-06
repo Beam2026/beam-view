@@ -1021,7 +1021,7 @@ int main(int argc, char *argv[])
             QString host    = streamParser.getHost();
             QString appName = streamParser.getAppName();
             auto launcher   = new CliStartStream::Launcher(host, appName, preferences, &app);
-            auto runner     = new CliHeadless::StreamRunner(launcher, &app);
+            auto runner     = new CliHeadless::StreamRunner(launcher, streamParser.getEmbedHwnd(), &app);
             runner->run(new ComputerManager(preferences));
             break;
         }

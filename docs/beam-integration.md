@@ -25,12 +25,12 @@ the cached record for `127.0.0.1` had been issued by a different Sunshine.
 Beam therefore pairs on **every** session and never trusts a cached answer. `pair` must stay cheap,
 repeatable, and safe to run against an already-paired host.
 
-## What Beam invokes today
+## What Beam invokes
 
 ```powershell
-beam-view.exe pair  127.0.0.1 --pin 1234
-beam-view.exe stream 127.0.0.1 "Desktop" --display-mode borderless --absolute-mouse enable --quit-after enable
-beam-view.exe quit  127.0.0.1
+beam-view.exe pair   127.0.0.1 --pin 1234
+beam-view.exe stream 127.0.0.1 "Desktop" --display-mode borderless --absolute-mouse enable --quit-after enable --embed-hwnd 1182734
+beam-view.exe quit   127.0.0.1
 ```
 
 Pairing is automatic and invisible: Beam generates the PIN, sends it to the host over its own
@@ -39,32 +39,50 @@ signalling channel, and the host's copy of Beam approves it against Sunshine. No
 Ports carried by the tunnel — TCP 47984 (HTTPS/pairing), 47989 (HTTP), 48010 (RTSP); UDP 47998
 (video), 47999 (control), 48000 (audio).
 
-## What Beam needs that does not exist yet
+## The contract as implemented
 
-These are the reasons the fork exists. Full breakdown in [`patches.md`](patches.md).
+All of this exists on the `beam` branch. Full breakdown in [`patches.md`](patches.md).
 
-**A window Beam can host.** `--embed-hwnd <handle>` should make the stream window a `WS_CHILD` of
-the given HWND at creation. Beam currently achieves this from outside with a `SetWinEventHook`, an
-8 ms `EnumWindows` sweep and an in-place reparent — every part of which is a workaround for not
-being able to ask.
+**`--embed-hwnd <handle>`** (Windows only, decimal `u64`). The stream window is created hidden,
+restyled to `WS_CHILD`, reparented into the given HWND and sized to fill its client area before it
+is ever shown — it never exists as a top-level window. From then on the parent owns position and
+size; Beam resizes the child with `MoveWindow` and SDL adapts. Recommended pattern: Beam creates a
+dedicated native host window inside its stage, passes that handle, and shows/positions the host
+when `beam: first-frame` arrives. Note a native child composites *above* the WebView2 surface, so
+Beam can frame the picture but not overlay it. Invalid or zero handles are rejected at parse time
+(exit 1).
 
-**Silence until there is a picture.** Beam shows its own loading screen while this program starts,
-so nothing of this program's UI should ever reach the screen: no title bar, no taskbar entry, no
-"Establishing connection to PC…" overlay, no dialogs. `pair` and `quit` included — both open a
-window today, one before the session and one after, which is precisely what users notice.
+**No UI of its own.** `stream`, `pair` and `quit` create no Qt window, overlay, or dialog. `pair`
+and `quit` do their work silently and exit 0, or report an error and exit 1. `pair` is idempotent:
+it pairs fresh every time, even when a cached record claims the host is already paired — so the
+"already paired" stderr special-case in `engines.rs` becomes dead code (pairing an already-trusted
+client succeeds and exits 0).
 
-**A status stream on stdout.** Beam needs to know when to reveal the window, and currently guesses:
-it watches its own tunnel agent for `local connection on 48010` (the RTSP handshake) and then waits
-1.5 s. Machine-readable output replaces the guess:
+**Status lines on stdout.** Line-oriented, prefixed, flushed per line:
 
 ```text
-beam: connecting
-beam: first-frame            <- reveal now; the picture is real
+beam: connecting             <- emitted when the stream command starts work
+beam: first-frame            <- first video frame actually rendered; reveal now
 beam: error <code> <text>    <- Beam renders this in its own words
-beam: ended <reason>
+beam: ended <reason>         <- reason is "clean" or "error"; process exits after
 ```
 
-Keep it line-oriented, prefixed, and stable. Beam parses it.
+`<code>` is stable: 1 launch failed (host/app not found, validation), 2 connection stage failed,
+3 session error or abnormal termination, 4 pairing failed, 5 quit failed. `<text>` is
+human-readable and free to change. Exit code is 0 for a clean session, 1 otherwise.
+
+**Logging.** All logs go to stderr, never stdout. When stderr is a pipe, only Error-level and above
+is emitted so an undrained pipe cannot fill and block this process — but Beam should still drain
+both pipes with reader threads (the `agent.rs` pattern) when it starts parsing status lines.
+
+### What this replaces on the Beam side
+
+- The `SetWinEventHook` + `EnumWindows` sweep + reparent (`embed.rs`) — pass `--embed-hwnd` instead.
+- The `local connection on 48010` + 1.5 s reveal guess — reveal on `beam: first-frame`.
+- The `already paired` stderr check in `engines.rs` — `pair` now exits 0 in that case.
+- The expected exe name is now `beam-view.exe`: update `engines.rs` (`bundled()` call, the two
+  system-path fallbacks become meaningless), `fetch-engines.mjs` (`expect`), and the
+  `finds_both_engines_in_the_fetched_tree` test together.
 
 ## Rules that bind this side
 

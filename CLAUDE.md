@@ -84,14 +84,16 @@ Where the planned changes land. Line numbers drift — search for the symbol.
 | Stream window title | `app/streaming/session.cpp` — `" - Moonlight"` |
 | CLI options | `app/cli/commandlineparser.cpp` — `StreamCommandLineParser::parse` |
 | `pair` / `quit` / `stream` entry points | `app/cli/pair.cpp`, `quitstream.cpp`, `startstream.cpp` |
-| "Establishing connection to PC…" overlays | `app/gui/CliPair.qml`, `CliStartStreamSegue.qml`, `CliQuitStreamSegue.qml` |
+| Headless CLI runners (no UI) | `app/cli/headless.cpp` — `StreamRunner`, `PairRunner`, `QuitRunner` |
+| `beam:` status lines on stdout | `app/beamstatus.cpp`; first-frame hook in `app/streaming/video/ffmpeg-renderers/pacer/pacer.cpp` |
+| `--embed-hwnd` window embedding | `app/streaming/session.cpp` — `setEmbedParentWindow` and the embed block in `exec()` |
 | "has not been paired" message | `app/cli/startstream.cpp`, `quitstream.cpp`, `listapps.cpp` |
 
 **`app/main.cpp`'s organisation and application names are not cosmetic.** They decide the settings
-path, currently `HKCU\Software\Moonlight Game Streaming Project\Moonlight` — *shared with any
-Moonlight the user has installed*. That shared state is what left four stale host records all
-claiming `127.0.0.1` and broke Beam's pairing. Changing these isolates the fork and fixes that
-class of bug at the root.
+path, now `HKCU\Software\Beam\beam-view` — private to this fork. Upstream's names put settings in
+`HKCU\Software\Moonlight Game Streaming Project\Moonlight`, *shared with any Moonlight the user has
+installed*; that shared state is what left four stale host records all claiming `127.0.0.1` and
+broke Beam's pairing. Do not change these names back or share them with anything else.
 
 ## What Beam expects
 
@@ -99,6 +101,6 @@ The CLI contract Beam depends on is in [`docs/beam-integration.md`](docs/beam-in
 Changing any of it means changing `desktop/src-tauri/src/engines.rs` in the Beam repo at the same
 time — nothing enforces that the two agree.
 
-Note that `pair` and `quit` are **not** headless today: each opens a window and shows
-"Establishing connection to PC…". Making them silent is a required change, not a nicety — those
-windows appear either side of every session.
+`pair`, `quit` and `stream` are all headless now: no window, no overlay, no dialogs. Status and
+errors go to stdout as `beam:` lines (see `app/beamstatus.h`), logs to stderr. Keep it that way —
+a message box from this program is the one thing the whole patch set exists to prevent.

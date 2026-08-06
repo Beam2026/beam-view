@@ -106,7 +106,7 @@ public:
                 } else {
                     m_State = StateFailure;
                     fprintf(stderr, "%s\n", qPrintable(QObject::tr("Computer %1 has not been paired. "
-                                            "Please open Moonlight to pair before retrieving games list.")
+                                            "Run the pair command before retrieving the games list.")
                                             .arg(event.computer->name)));
 
                     QCoreApplication::exit(-1);

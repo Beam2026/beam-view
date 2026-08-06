@@ -75,18 +75,16 @@ public:
         // Occurs when searched computer is found
         case Event::ComputerFound:
             if (m_State == StateSeekComputer) {
-                if (event.computer->pairState == NvComputer::PS_PAIRED) {
-                    m_State = StateFailure;
-                    QString msg = QObject::tr("%1 is already paired").arg(event.computer->name);
-                    emit q->failed(msg);
-                }
-                else {
-                    Q_ASSERT(!m_PredefinedPin.isEmpty());
+                // Pair even if the cached state says we already are. Beam
+                // tunnels a different physical machine behind 127.0.0.1 every
+                // session, so a cached "paired" record describes last
+                // session's host, not this one. Re-pairing an already-trusted
+                // client is harmless and re-pins the server certificate.
+                Q_ASSERT(!m_PredefinedPin.isEmpty());
 
-                    m_State = StatePairing;
-                    m_ComputerManager->pairHost(event.computer, m_PredefinedPin);
-                    emit q->pairing(event.computer->name, m_PredefinedPin);
-                }
+                m_State = StatePairing;
+                m_ComputerManager->pairHost(event.computer, m_PredefinedPin);
+                emit q->pairing(event.computer->name, m_PredefinedPin);
             }
             break;
         // Occurs when pairing operation completes

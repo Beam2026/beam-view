@@ -1027,20 +1027,24 @@ int main(int argc, char *argv[])
         }
     case GlobalCommandLineParser::QuitRequested:
         {
-            initialView = "qrc:/gui/CliQuitStreamSegue.qml";
+            // Does its work and exits silently; failures go to stdout
+            hasGUI = false;
             QuitCommandLineParser quitParser;
             quitParser.parse(app.arguments());
             auto launcher = new CliQuitStream::Launcher(quitParser.getHost(), &app);
-            engine.rootContext()->setContextProperty("launcher", launcher);
+            auto runner   = new CliHeadless::QuitRunner(launcher, &app);
+            runner->run(new ComputerManager(StreamingPreferences::get()));
             break;
         }
     case GlobalCommandLineParser::PairRequested:
         {
-            initialView = "qrc:/gui/CliPair.qml";
+            // Does its work and exits silently; failures go to stdout
+            hasGUI = false;
             PairCommandLineParser pairParser;
             pairParser.parse(app.arguments());
             auto launcher = new CliPair::Launcher(pairParser.getHost(), pairParser.getPredefinedPin(), &app);
-            engine.rootContext()->setContextProperty("launcher", launcher);
+            auto runner   = new CliHeadless::PairRunner(launcher, &app);
+            runner->run(new ComputerManager(StreamingPreferences::get()));
             break;
         }
     case GlobalCommandLineParser::ListRequested:

@@ -101,4 +101,51 @@ void StreamRunner::onSessionFinished(int portTestResult)
     QCoreApplication::exit(m_ErrorReported ? 1 : 0);
 }
 
+PairRunner::PairRunner(CliPair::Launcher* launcher, QObject* parent)
+    : QObject(parent),
+      m_Launcher(launcher)
+{
+    connect(launcher, &CliPair::Launcher::failed,
+            this, &PairRunner::onFailed);
+    connect(launcher, &CliPair::Launcher::success,
+            this, &PairRunner::onSuccess);
+}
+
+void PairRunner::run(ComputerManager* computerManager)
+{
+    m_Launcher->execute(computerManager);
+}
+
+void PairRunner::onFailed(QString message)
+{
+    BeamStatus::error(BeamStatus::ErrorPairingFailed, message);
+    QCoreApplication::exit(1);
+}
+
+void PairRunner::onSuccess()
+{
+    QCoreApplication::exit(0);
+}
+
+QuitRunner::QuitRunner(CliQuitStream::Launcher* launcher, QObject* parent)
+    : QObject(parent),
+      m_Launcher(launcher)
+{
+    // The quit launcher exits the process itself on success; only failure
+    // needs handling here.
+    connect(launcher, &CliQuitStream::Launcher::failed,
+            this, &QuitRunner::onFailed);
+}
+
+void QuitRunner::run(ComputerManager* computerManager)
+{
+    m_Launcher->execute(computerManager);
+}
+
+void QuitRunner::onFailed(QString message)
+{
+    BeamStatus::error(BeamStatus::ErrorQuitFailed, message);
+    QCoreApplication::exit(1);
+}
+
 }

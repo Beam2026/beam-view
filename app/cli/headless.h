@@ -2,6 +2,8 @@
 
 #include <QObject>
 
+#include "pair.h"
+#include "quitstream.h"
 #include "startstream.h"
 
 class ComputerManager;
@@ -35,6 +37,39 @@ private:
     CliStartStream::Launcher* m_Launcher;
     Session* m_Session;
     bool m_ErrorReported;
+};
+
+class PairRunner : public QObject
+{
+    Q_OBJECT
+
+public:
+    explicit PairRunner(CliPair::Launcher* launcher, QObject* parent = nullptr);
+
+    void run(ComputerManager* computerManager);
+
+private slots:
+    void onFailed(QString message);
+    void onSuccess();
+
+private:
+    CliPair::Launcher* m_Launcher;
+};
+
+class QuitRunner : public QObject
+{
+    Q_OBJECT
+
+public:
+    explicit QuitRunner(CliQuitStream::Launcher* launcher, QObject* parent = nullptr);
+
+    void run(ComputerManager* computerManager);
+
+private slots:
+    void onFailed(QString message);
+
+private:
+    CliQuitStream::Launcher* m_Launcher;
 };
 
 }

@@ -1,4 +1,5 @@
 #include "pacer.h"
+#include "beamstatus.h"
 #include "streaming/streamutils.h"
 
 #ifdef Q_OS_WIN32
@@ -341,6 +342,10 @@ void Pacer::renderFrame(AVFrame* frame)
 
     m_VideoStats->totalRenderTimeUs += (afterRender - beforeRender);
     m_VideoStats->renderedFrames++;
+
+    // Every rendered frame funnels through here, so this is where "the
+    // picture is real" is decided. Emits only once per process.
+    BeamStatus::firstFrame();
 
     // Wait until after next frame to free this one to ensure the GPU
     // doesn't stall or read garbage if the backing buffer gets returned

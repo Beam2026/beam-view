@@ -165,6 +165,8 @@ macx {
 SOURCES += \
     backend/nvaddress.cpp \
     backend/nvapp.cpp \
+    beamstatus.cpp \
+    cli/headless.cpp \
     cli/pair.cpp \
     main.cpp \
     backend/computerseeker.cpp \
@@ -207,6 +209,8 @@ HEADERS += \
     SDL_compat.h \
     backend/nvaddress.h \
     backend/nvapp.h \
+    beamstatus.h \
+    cli/headless.h \
     cli/pair.h \
     settings/compatfetcher.h \
     settings/mappingfetcher.h \

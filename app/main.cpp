@@ -44,6 +44,7 @@
 #include "cli/startstream.h"
 #include "cli/pair.h"
 #include "cli/commandlineparser.h"
+#include "cli/headless.h"
 #include "path.h"
 #include "utils.h"
 #include "gui/computermodel.h"
@@ -814,6 +815,19 @@ int main(int argc, char *argv[])
         // Don't log to the console since it will jumble the command output
         s_SuppressVerboseOutput = true;
         break;
+    case GlobalCommandLineParser::StreamRequested:
+    case GlobalCommandLineParser::QuitRequested:
+    case GlobalCommandLineParser::PairRequested:
+#ifdef Q_OS_WIN32
+        // When Beam is the parent, stderr is a pipe that Beam may never
+        // drain. Chatty logging can fill the pipe buffer and block this
+        // process mid-session, so keep only errors in that case.
+        // Redirecting stderr to a file still captures everything.
+        if (GetFileType(oldConErr) == FILE_TYPE_PIPE) {
+            s_SuppressVerboseOutput = true;
+        }
+#endif
+        break;
     default:
         break;
     }
@@ -997,14 +1011,18 @@ int main(int argc, char *argv[])
         break;
     case GlobalCommandLineParser::StreamRequested:
         {
-            initialView = "qrc:/gui/CliStartStreamSegue.qml";
+            // Streaming runs with no UI of its own: Beam draws the loading
+            // screen and renders errors, so this process only produces the
+            // stream window and "beam:" status lines on stdout.
+            hasGUI = false;
             StreamingPreferences* preferences = StreamingPreferences::get();
             StreamCommandLineParser streamParser;
             streamParser.parse(app.arguments(), preferences);
             QString host    = streamParser.getHost();
             QString appName = streamParser.getAppName();
             auto launcher   = new CliStartStream::Launcher(host, appName, preferences, &app);
-            engine.rootContext()->setContextProperty("launcher", launcher);
+            auto runner     = new CliHeadless::StreamRunner(launcher, &app);
+            runner->run(new ComputerManager(preferences));
             break;
         }
     case GlobalCommandLineParser::QuitRequested:

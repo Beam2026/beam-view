@@ -1,3 +1,19 @@
+# beam-view
+
+**This is a modified version of [Moonlight PC](https://moonlight-stream.org)
+([moonlight-qt](https://github.com/moonlight-stream/moonlight-qt)), modified by Beam starting
+August 2026.** It is the streaming engine that [Beam](https://github.com/Beam2026) runs as a child
+process. It is not Moonlight, and problems with it should not be reported to the Moonlight project.
+
+Like Moonlight, it is licensed under **GPL-3.0** — see [LICENSE](LICENSE). The complete source for
+every released binary is this repository. The modifications are catalogued in
+[`docs/patches.md`](docs/patches.md), and each change is visible as a commit on the `beam` branch
+against the pinned upstream base.
+
+Upstream's original README follows.
+
+---
+
 # Moonlight PC
 
 [Moonlight PC](https://moonlight-stream.org) is an open source PC client for NVIDIA GameStream and [Sunshine](https://github.com/LizardByte/Sunshine).

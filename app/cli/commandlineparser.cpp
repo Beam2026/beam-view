@@ -154,7 +154,7 @@ GlobalCommandLineParser::ParseResult GlobalCommandLineParser::parse(const QStrin
     parser.setupCommonOptions();
     parser.setApplicationDescription(
         "\n"
-        "Starts Moonlight normally if no arguments are given.\n"
+        "Starts beam-view normally if no arguments are given.\n"
         "\n"
         "Available actions:\n"
         "  list            List the available apps on a host\n"
@@ -162,7 +162,7 @@ GlobalCommandLineParser::ParseResult GlobalCommandLineParser::parse(const QStrin
         "  stream          Start streaming an app\n"
         "  pair            Pair a new host\n"
         "\n"
-        "See 'moonlight <action> --help' for help of specific action."
+        "See 'beam-view <action> --help' for help of specific action."
     );
     parser.addPositionalArgument("action", "Action to execute", "<action>");
     parser.parse(args);

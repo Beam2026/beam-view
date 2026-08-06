@@ -1,0 +1,108 @@
+# The patch set
+
+Five changes, deliberately separate. Rebasing onto upstream is the permanent cost of this fork and
+it scales with how tangled the patches are — so one concern per commit, and resist the urge to
+"tidy while I'm in here". Unrelated cleanup makes future rebases hurt for no benefit.
+
+Nothing here is implemented yet. The base is a pinned upstream commit on the `beam` branch.
+
+---
+
+## P1 — Identity
+
+Make it Beam's program rather than a renamed Moonlight.
+
+- `app/app.pro` — `TARGET`, `QMAKE_TARGET_COMPANY`, `QMAKE_TARGET_DESCRIPTION`,
+  `QMAKE_TARGET_PRODUCT`; icon resources.
+- `app/main.cpp` — `setOrganizationName`, `setOrganizationDomain`, `setApplicationName`.
+- `app/streaming/session.cpp` — the window title, currently `<computer> - Moonlight`.
+
+**The `main.cpp` names are the important part, and not for branding.** They decide where `QSettings`
+stores everything: today `HKCU\Software\Moonlight Game Streaming Project\Moonlight`, shared with any
+Moonlight the user has installed. Beam accumulated four stale host records there — all claiming
+`127.0.0.1`, each with a certificate from a different Sunshine — and pairing failed with "Computer
+… has not been paired". Owning a private settings location fixes that class of bug at the root.
+
+This also fixes the one tell that external window-hiding could never cover: Task Manager showing
+`Moonlight.exe`. Renaming the *build target* is not a modification of the program's behaviour, so
+it carries no extra obligation beyond the modification notice already required.
+
+---
+
+## P2 — `--embed-hwnd <handle>`
+
+Create the stream window as a `WS_CHILD` of a caller-supplied HWND, at creation.
+
+- `app/cli/commandlineparser.cpp` — add the option to `StreamCommandLineParser`.
+- `app/streaming/session.cpp` — apply it at `SDL_CreateWindow`, via `SDL_CreateWindowFrom` or by
+  setting the parent before the window is shown.
+
+**This is the patch that justifies the fork.** Beam currently hides the window with a WinEvent hook
+plus an 8 ms polling sweep, then reparents it and rewrites its window styles in place. All of that
+— the hook, the sweep, the restyle, the race between them, and the risk of a single visible frame —
+collapses into passing a number on the command line. Beam's `embed.rs` gets deleted, not rewritten.
+
+Worth knowing: a child window composites *above* the WebView2 surface Beam's UI is drawn on, so
+Beam can frame the picture but not overlay it. That is a Beam-side concern, not this program's.
+
+---
+
+## P3 — No UI of its own
+
+Remove this program's user interface. Not restyle it — remove it.
+
+- `app/gui/CliPair.qml`, `CliStartStreamSegue.qml`, `CliQuitStreamSegue.qml` — the
+  "Establishing connection to PC…" overlays.
+- `app/cli/startstream.cpp`, `quitstream.cpp`, `listapps.cpp` — the "has not been paired" and
+  similar messages.
+
+In their place, emit stable line-oriented status on stdout:
+
+```text
+beam: connecting
+beam: first-frame
+beam: error <code> <text>
+beam: ended <reason>
+```
+
+`beam: first-frame` matters most. Beam currently infers the moment to reveal the window by watching
+its own tunnel agent for the RTSP connection on port 48010 and then waiting 1.5 s — a guess biased
+long, because revealing early leaks this program's connection screen. An explicit signal removes the
+guess and the delay.
+
+Error text goes to Beam, which renders it in its own words. Never a dialog: the user is looking at
+Beam and has never heard of this program.
+
+---
+
+## P4 — Headless `pair` and `quit`
+
+Both currently open a window and show the connection overlay — before the session and after it. On
+a normal session the user sees this program's UI twice even when the stream itself is perfectly
+hidden. They should do their work and exit silently.
+
+Largely falls out of P3, but verify each independently: they are separate entry points
+(`app/cli/pair.cpp`, `quitstream.cpp`) and each has its own QML segue.
+
+---
+
+## P5 — Beam's defaults
+
+Bake in what Beam always passes — borderless, absolute mouse, quit-after, codec, frame pacing — so
+the invocation stays short and behaviour cannot drift with a stray config file.
+
+Lowest value of the five. Do it last, or skip it if the CLI stays manageable.
+
+---
+
+## When to stop
+
+If this list grows well past five patches, or a rebase starts taking real work rather than an
+afternoon, that is the signal to reconsider. The alternative is owning the pipeline outright —
+Desktop Duplication for capture, NVENC/AMF/QSV to encode, Media Foundation or D3D11VA to decode,
+rendering into Beam's own swapchain. No GPL anywhere, complete control, and Beam already owns the
+hard part: the transport.
+
+That is months of work and years behind Sunshine and Moonlight on tuning — adaptive bitrate, FEC,
+jitter buffering, HDR. It is the right destination and the wrong starting point. This fork is how
+you get most of the benefit now; revisit when the maintenance cost says otherwise.

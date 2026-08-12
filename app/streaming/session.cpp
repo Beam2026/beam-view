@@ -580,6 +580,7 @@ Session::Session(NvComputer* computer, NvApp& app, StreamingPreferences *prefere
       m_AudioMuted(false),
       m_QtWindow(nullptr),
       m_EmbedParent(0),
+      m_EmbedWindowHandle(0),
       m_LastEmbedSizeCheckTime(0),
       m_UnexpectedTermination(true), // Failure prior to streaming is unexpected
       m_InputHandler(nullptr),
@@ -1762,28 +1763,53 @@ void Session::updateEmbeddedWindowSize()
     // loops can end up waiting on each other forever. So the parent resizes
     // only itself, and we track its client area from our own thread here.
     //
-    // Called on every event loop pass; throttled because a resize check per
-    // input event would be wasteful.
+    // Raw SetWindowPos rather than SDL_SetWindowSize: SDL repositions the
+    // window using its cached coordinates, which are screen coordinates —
+    // wrong for a WS_CHILD window, whose position is parent-relative. SDL
+    // learns about the new size from the resulting WM_WINDOWPOSCHANGED just
+    // like a user-initiated resize.
+    //
+    // Called on every event loop pass; throttled because a geometry check
+    // per input event would be wasteful.
     Uint32 now = SDL_GetTicks();
     if (now - m_LastEmbedSizeCheckTime < 200) {
         return;
     }
     m_LastEmbedSizeCheckTime = now;
 
-    RECT clientRect;
-    if (!GetClientRect((HWND)m_EmbedParent, &clientRect)) {
+    HWND window = (HWND)m_EmbedWindowHandle;
+    if (window == nullptr) {
+        return;
+    }
+
+    RECT parentClient;
+    if (!GetClientRect((HWND)m_EmbedParent, &parentClient)) {
         // Parent is gone; the session is about to end anyway
         return;
     }
 
-    int width = qMax(1, (int)clientRect.right);
-    int height = qMax(1, (int)clientRect.bottom);
+    int width = qMax(1, (int)parentClient.right);
+    int height = qMax(1, (int)parentClient.bottom);
 
-    int currentWidth, currentHeight;
-    SDL_GetWindowSize(m_Window, &currentWidth, &currentHeight);
+    RECT windowRect;
+    if (!GetWindowRect(window, &windowRect)) {
+        return;
+    }
+    POINT origin = { windowRect.left, windowRect.top };
+    ScreenToClient((HWND)m_EmbedParent, &origin);
 
-    if (width != currentWidth || height != currentHeight) {
-        SDL_SetWindowSize(m_Window, width, height);
+    if (origin.x != 0 || origin.y != 0 ||
+        (windowRect.right - windowRect.left) != width ||
+        (windowRect.bottom - windowRect.top) != height) {
+        SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION,
+                    "Embedded window %dx%d at (%d,%d) -> %dx%d at (0,0)",
+                    (int)(windowRect.right - windowRect.left),
+                    (int)(windowRect.bottom - windowRect.top),
+                    (int)origin.x, (int)origin.y,
+                    width, height);
+
+        SetWindowPos(window, nullptr, 0, 0, width, height,
+                     SWP_NOZORDER | SWP_NOACTIVATE);
     }
 }
 #endif
@@ -1974,6 +2000,8 @@ void Session::exec()
             SetParent(streamHwnd, (HWND)m_EmbedParent);
             SetWindowPos(streamHwnd, nullptr, 0, 0, width, height,
                          SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED);
+
+            m_EmbedWindowHandle = (quintptr)streamHwnd;
 
             SDL_ShowWindow(m_Window);
         }

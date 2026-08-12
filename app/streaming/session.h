@@ -268,6 +268,7 @@ private:
     Uint32 m_FullScreenFlag;
     QQuickWindow* m_QtWindow;
     quintptr m_EmbedParent;
+    quintptr m_EmbedWindowHandle;
     Uint32 m_LastEmbedSizeCheckTime;
     bool m_UnexpectedTermination;
     SdlInputHandler* m_InputHandler;

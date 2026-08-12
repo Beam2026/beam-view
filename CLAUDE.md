@@ -60,7 +60,7 @@ Full detail, including the two traps, is in [`docs/building.md`](docs/building.m
 ```powershell
 # once
 git submodule update --init --recursive
-powershell .\setup-deps.ps1              # prebuilt FFmpeg/SDL2/OpenSSL, ~v11 release
+powershell .\setup-deps.ps1              # prebuilt FFmpeg/SDL2/OpenSSL, ~v12 release
 
 # every build - needs Qt 6.11.1 msvc2022_64, MSVC, and 7-Zip on PATH
 scripts\build-arch.bat Release x64

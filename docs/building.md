@@ -46,7 +46,14 @@ powershell .\setup-deps.ps1
 ```
 
 `setup-deps.ps1` downloads prebuilt native libraries into `libs\windows\`. It is pinned to a tag
-(currently `v11`) inside the script, so it is reproducible.
+(currently `v12`) inside the script, so it is reproducible.
+
+The pinned tag matters beyond reproducibility: `v11` shipped an FFmpeg whose 8-bit full-range
+D3D11VA decoding is broken, and upstream's default color range is now full — so every 8-bit
+hardware decode failed with `AVHWFramesContext: Unsupported pixel format: (null)` in an endless
+IDR-request loop. Audio played, no picture ever appeared. `v12` carries the fixed FFmpeg
+(upstream commit `2e13ed99`). If decode loops like that ever reappear after a rebase, check the
+deps tag against upstream's before debugging anything else.
 
 ## Building
 

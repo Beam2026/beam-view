@@ -815,19 +815,6 @@ int main(int argc, char *argv[])
         // Don't log to the console since it will jumble the command output
         s_SuppressVerboseOutput = true;
         break;
-    case GlobalCommandLineParser::StreamRequested:
-    case GlobalCommandLineParser::QuitRequested:
-    case GlobalCommandLineParser::PairRequested:
-#ifdef Q_OS_WIN32
-        // When Beam is the parent, stderr is a pipe that Beam may never
-        // drain. Chatty logging can fill the pipe buffer and block this
-        // process mid-session, so keep only errors in that case.
-        // Redirecting stderr to a file still captures everything.
-        if (GetFileType(oldConErr) == FILE_TYPE_PIPE) {
-            s_SuppressVerboseOutput = true;
-        }
-#endif
-        break;
     default:
         break;
     }

@@ -172,6 +172,10 @@ private:
 
     void toggleFullscreen();
 
+#ifdef Q_OS_WIN32
+    void updateEmbeddedWindowSize();
+#endif
+
     void notifyMouseEmulationMode(bool enabled);
 
     void updateOptimalWindowDisplayMode();
@@ -264,6 +268,7 @@ private:
     Uint32 m_FullScreenFlag;
     QQuickWindow* m_QtWindow;
     quintptr m_EmbedParent;
+    Uint32 m_LastEmbedSizeCheckTime;
     bool m_UnexpectedTermination;
     SdlInputHandler* m_InputHandler;
     int m_MouseEmulationRefCount;

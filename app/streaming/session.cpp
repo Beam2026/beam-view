@@ -580,6 +580,7 @@ Session::Session(NvComputer* computer, NvApp& app, StreamingPreferences *prefere
       m_AudioMuted(false),
       m_QtWindow(nullptr),
       m_EmbedParent(0),
+      m_LastEmbedSizeCheckTime(0),
       m_UnexpectedTermination(true), // Failure prior to streaming is unexpected
       m_InputHandler(nullptr),
       m_MouseEmulationRefCount(0),
@@ -1752,6 +1753,41 @@ void Session::setEmbedParentWindow(quintptr handle)
     m_IsFullScreen = false;
 }
 
+#ifdef Q_OS_WIN32
+void Session::updateEmbeddedWindowSize()
+{
+    // The embedding side must never resize this window directly: a
+    // cross-process SetWindowPos is a synchronous message send, and with the
+    // input queues attached by the cross-process SetParent, both message
+    // loops can end up waiting on each other forever. So the parent resizes
+    // only itself, and we track its client area from our own thread here.
+    //
+    // Called on every event loop pass; throttled because a resize check per
+    // input event would be wasteful.
+    Uint32 now = SDL_GetTicks();
+    if (now - m_LastEmbedSizeCheckTime < 200) {
+        return;
+    }
+    m_LastEmbedSizeCheckTime = now;
+
+    RECT clientRect;
+    if (!GetClientRect((HWND)m_EmbedParent, &clientRect)) {
+        // Parent is gone; the session is about to end anyway
+        return;
+    }
+
+    int width = qMax(1, (int)clientRect.right);
+    int height = qMax(1, (int)clientRect.bottom);
+
+    int currentWidth, currentHeight;
+    SDL_GetWindowSize(m_Window, &currentWidth, &currentHeight);
+
+    if (width != currentWidth || height != currentHeight) {
+        SDL_SetWindowSize(m_Window, width, height);
+    }
+}
+#endif
+
 void Session::setShouldExit(bool quitHostApp)
 {
     // If the caller has explicitly asked us to quit the host app,
@@ -2043,6 +2079,13 @@ void Session::exec()
     // because we want to suspend all Qt processing until the stream is over.
     SDL_Event event;
     for (;;) {
+#ifdef Q_OS_WIN32
+        // In embedded mode our size follows the parent's client area
+        if (m_EmbedParent != 0) {
+            updateEmbeddedWindowSize();
+        }
+#endif
+
 #if SDL_VERSION_ATLEAST(2, 0, 18) && !defined(STEAM_LINK)
         // SDL 2.0.18 has a proper wait event implementation that uses platform
         // support to block on events rather than polling on Windows, macOS, X11,

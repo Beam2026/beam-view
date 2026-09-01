@@ -11,7 +11,8 @@ Guidance for Claude Code (claude.ai/code) working in this repository.
 the client that decodes a Sunshine stream and renders it. Beam runs it as a **child process** and
 shows its window *inside* Beam's own window, so the user never sees a second application.
 
-Beam itself lives in a separate, private repo at `C:\Projects\BeamApp\BEAM`. It talks to this
+Beam itself lives in a separate, private repo (`Beam`, github.com/Beam2026/BEAM), normally checked
+out beside this one. It talks to this
 program only over a command line. **That process boundary is load-bearing** — see Licence below.
 
 This is a **modified** version of Moonlight. It is not Moonlight, must not claim to be, and its

@@ -1,6 +1,7 @@
 # How Beam drives this program
 
-Beam (`C:\Projects\BeamApp\BEAM`, private) runs `beam-view` as a child process. This file is the
+Beam (`Beam`, private — github.com/Beam2026/BEAM, normally checked out beside this repo) runs
+`beam-view` as a child process. This file is the
 contract between them. **It is defined in two places with nothing enforcing agreement** — here, and
 `desktop/src-tauri/src/engines.rs` in the Beam repo. Change one, change the other.
 
@@ -45,12 +46,28 @@ All of this exists on the `beam` branch. Full breakdown in [`patches.md`](patche
 
 **`--embed-hwnd <handle>`** (Windows only, decimal `u64`). The stream window is created hidden,
 restyled to `WS_CHILD`, reparented into the given HWND and sized to fill its client area before it
-is ever shown — it never exists as a top-level window. From then on the parent owns position and
-size; Beam resizes the child with `MoveWindow` and SDL adapts. Recommended pattern: Beam creates a
-dedicated native host window inside its stage, passes that handle, and shows/positions the host
-when `beam: first-frame` arrives. Note a native child composites *above* the WebView2 surface, so
-Beam can frame the picture but not overlay it. Invalid or zero handles are rejected at parse time
-(exit 1).
+is ever shown — it never exists as a top-level window. Invalid or zero handles are rejected at parse
+time (exit 1).
+
+> **The embedding side must never touch this window.** Not `MoveWindow`, not `SetWindowPos`, not
+> `SetWindowLong` — nothing. A cross-process window call is a **synchronous message send**, and the
+> cross-process `SetParent` has already joined the two input queues, so both message loops can end
+> up waiting on each other forever. That is not theoretical: it is what the first two-machine embed
+> test produced, as Beam hanging with a grey stage.
+>
+> **Beam moves only the host window it owns.** This program watches its parent's client area from
+> its own event loop (throttled to one check per 200 ms) and repositions itself with a local
+> `SetWindowPos`, pinned at (0,0). Resizing Beam's stage is therefore the entire protocol — the
+> child follows on its own, with a lag of up to 200 ms.
+>
+> **Status: implemented, not yet verified end to end.** The deadlock and the geometry pinning were
+> both fixed after that failed test, and the fixes ship in `beam-v0.1.0`, but no full session has
+> run since. Treat a hang or a black stage here as an open question, not a regression — and check
+> the `[stage]` log lines against this program's own geometry logs, which record every correction.
+
+Recommended pattern: Beam creates a dedicated native host window inside its stage, passes that
+handle, and shows and positions **the host** when `beam: first-frame` arrives. Note a native child
+composites *above* the WebView2 surface, so Beam can frame the picture but not overlay it.
 
 **No UI of its own.** `stream`, `pair` and `quit` create no Qt window, overlay, or dialog. `pair`
 and `quit` do their work silently and exit 0, or report an error and exit 1. `pair` is idempotent:

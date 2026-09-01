@@ -9,7 +9,7 @@ The base is a pinned upstream commit on the `beam` branch. Status (August 2026):
 | Patch | Status |
 | --- | --- |
 | P1 — Identity | **Implemented** — one commit on `beam` |
-| P2 — `--embed-hwnd` | **Implemented** — one commit on `beam` |
+| P2 — `--embed-hwnd` | **Implemented, not yet verified end to end** — three commits: the original, plus a deadlock fix and a geometry fix made after the first two-machine test failed |
 | P3 — No UI of its own | **Implemented** — status helper in `app/beamstatus.{h,cpp}`, headless runners in `app/cli/headless.{h,cpp}` |
 | P4 — Headless `pair`/`quit` | **Implemented** — including idempotent re-pair |
 | P5 — Baked-in defaults | Not implemented, deliberately (lowest value; the CLI is manageable) |
@@ -52,6 +52,25 @@ collapses into passing a number on the command line. Beam's `embed.rs` gets dele
 
 Worth knowing: a child window composites *above* the WebView2 surface Beam's UI is drawn on, so
 Beam can frame the picture but not overlay it. That is a Beam-side concern, not this program's.
+
+### What the first two-machine test changed
+
+The original patch assumed the embedding side would resize the child. It cannot. Two follow-up
+commits fixed what that produced, and they are the reason this patch is three commits rather than
+one:
+
+- **Never let the parent move this window.** A cross-process window call is a synchronous message
+  send, and the cross-process `SetParent` joins both input queues — so the two message loops can
+  wait on each other forever. Observed as Beam hanging with a grey stage. The window now tracks its
+  parent's client area from the SDL event loop, throttled to one check per 200 ms.
+- **Reposition with raw `SetWindowPos`, pinned at (0,0).** `SDL_SetWindowSize` repositions using
+  SDL's cached *screen* coordinates, which are wrong for a `WS_CHILD` whose position is
+  parent-relative — the stream could land far inside its parent, rendering where nobody could see
+  it. Every geometry correction is now logged, so an embedding failure is visible in the session log.
+
+**Neither fix has run in a full session yet.** They ship in `beam-v0.1.0` and the engine pipeline
+either side of them is verified — pair, decode, `beam: first-frame`, clean exit all confirmed on
+loopback — but the embed itself is still untested. If the stage is black or Beam hangs, start here.
 
 ---
 

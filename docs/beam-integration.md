@@ -60,14 +60,32 @@ time (exit 1).
 > `SetWindowPos`, pinned at (0,0). Resizing Beam's stage is therefore the entire protocol — the
 > child follows on its own, with a lag of up to 200 ms.
 >
-> **Status: implemented, not yet verified end to end.** The deadlock and the geometry pinning were
-> both fixed after that failed test, and the fixes ship in `beam-v0.1.0`, but no full session has
-> run since. Treat a hang or a black stage here as an open question, not a regression — and check
-> the `[stage]` log lines against this program's own geometry logs, which record every correction.
+> **Status: verified end to end, 2026-09-03.** A picture appeared inside Beam's window across two
+> machines on separate networks, and the child tracked about fifty sizes through a live window drag.
+> The deadlock fix and the geometry pinning both held.
 
-Recommended pattern: Beam creates a dedicated native host window inside its stage, passes that
-handle, and shows and positions **the host** when `beam: first-frame` arrives. Note a native child
-composites *above* the WebView2 surface, so Beam can frame the picture but not overlay it.
+**Two things the embedding side must do, and neither is this program's job.**
+
+**Size the host before starting this program, not when the first frame arrives.** The decoder and
+the D3D11 swapchain are built against whatever the embed window measures at start-up, and
+`beam: first-frame` is emitted from the *present* path — so a host sized on first-frame was sized
+after the stream had already been built for it. Beam parks the host at full size just off its client
+area before launching, and the reveal is then a pure move at the same size, which this program can
+ignore. A host that is still 1×1 when this program starts will have its stream built for one pixel.
+
+**Raise the host, on every placement.** A native child composites above the WebView2 surface **only
+if its z-order says so**. This program deliberately passes `SWP_NOZORDER` on both its embed and its
+resize, because it must not fight its parent for stacking — so the embedder owns that entirely. Beam
+uses `SetWindowPos` with `HWND_TOP` and `SWP_NOACTIVATE` every time it places the host; once is not
+enough, since WebView2's own child window raises itself on focus or repaint.
+
+Getting this wrong is quiet and expensive: the stream decodes, `beam: first-frame` fires, the
+geometry logs look perfect, and the user sees the embedder's own page. It cost a week. Whatever the
+embedder paints in the stage rectangle should therefore not be black, so that "covered" and "never
+arrived" can be told apart by looking.
+
+With the z-order set, the video is above the page, so the embedder can frame the picture but not
+overlay it — in-session controls have to live outside the stage rectangle.
 
 **No UI of its own.** `stream`, `pair` and `quit` create no Qt window, overlay, or dialog. `pair`
 and `quit` do their work silently and exit 0, or report an error and exit 1. `pair` is idempotent:

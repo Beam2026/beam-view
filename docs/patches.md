@@ -9,7 +9,7 @@ The base is a pinned upstream commit on the `beam` branch. Status (August 2026):
 | Patch | Status |
 | --- | --- |
 | P1 — Identity | **Implemented** — one commit on `beam` |
-| P2 — `--embed-hwnd` | **Implemented, not yet verified end to end** — three commits: the original, plus a deadlock fix and a geometry fix made after the first two-machine test failed |
+| P2 — `--embed-hwnd` | **Implemented and verified end to end, 2026-09-03** — three commits: the original, plus a deadlock fix and a geometry fix made after the first two-machine test failed |
 | P3 — No UI of its own | **Implemented** — status helper in `app/beamstatus.{h,cpp}`, headless runners in `app/cli/headless.{h,cpp}` |
 | P4 — Headless `pair`/`quit` | **Implemented** — including idempotent re-pair |
 | P5 — Baked-in defaults | Not implemented, deliberately (lowest value; the CLI is manageable) |
@@ -68,9 +68,19 @@ one:
   parent-relative — the stream could land far inside its parent, rendering where nobody could see
   it. Every geometry correction is now logged, so an embedding failure is visible in the session log.
 
-**Neither fix has run in a full session yet.** They ship in `beam-v0.1.0` and the engine pipeline
-either side of them is verified — pair, decode, `beam: first-frame`, clean exit all confirmed on
-loopback — but the embed itself is still untested. If the stage is black or Beam hangs, start here.
+**Both fixes held, verified 2026-09-03** across two machines on separate networks: the picture
+appeared inside Beam's window, and the child tracked about fifty sizes through a live window drag
+without hanging.
+
+**What the same session found was ours to *not* do.** The stage stayed black for a week afterwards,
+and the cause was on the embedding side: nothing raised the host window's z-order, so Beam's own
+page sat over a stream that was decoding perfectly. This program passes `SWP_NOZORDER` on purpose —
+it must not fight its parent for stacking — which makes the raise entirely the embedder's job. That
+is now stated as an obligation in [`beam-integration.md`](beam-integration.md); before, both
+documents implied a native child is simply always on top, and it is not.
+
+Worth remembering when this patch is next touched: every symptom pointed at this code — black
+picture, embedded window, geometry logs — and none of the fault was here.
 
 ---
 

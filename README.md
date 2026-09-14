@@ -33,7 +33,7 @@ the `beam` branch against a pinned upstream base.
 
 ```powershell
 beam-view.exe pair   127.0.0.1 --pin 1234
-beam-view.exe stream 127.0.0.1 "Desktop" --embed-hwnd <handle> --display-mode borderless
+beam-view.exe stream 127.0.0.1 "Desktop" --embed-hwnd <handle> --resolution 1920x1080
 beam-view.exe quit   127.0.0.1
 ```
 

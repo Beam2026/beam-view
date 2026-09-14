@@ -30,9 +30,14 @@ repeatable, and safe to run against an already-paired host.
 
 ```powershell
 beam-view.exe pair   127.0.0.1 --pin 1234
-beam-view.exe stream 127.0.0.1 "Desktop" --display-mode borderless --absolute-mouse enable --quit-after enable --embed-hwnd 1182734
+beam-view.exe stream 127.0.0.1 "Desktop" --resolution 1920x1080 --absolute-mouse enable --quit-after enable --embed-hwnd 1182734
 beam-view.exe quit   127.0.0.1
 ```
+
+`--resolution` is the host's own screen size when Beam learned it in time (over signalling, not
+from this program), 1920x1080 otherwise. `--display-mode` is never passed: `--embed-hwnd`
+supersedes it entirely, since the embedded window has no chrome and no fullscreen mode of its own
+to select.
 
 Pairing is automatic and invisible: Beam generates the PIN, sends it to the host over its own
 signalling channel, and the host's copy of Beam approves it against Sunshine. Nobody types a PIN.

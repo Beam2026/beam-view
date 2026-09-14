@@ -9,7 +9,7 @@ The base is a pinned upstream commit on the `beam` branch. Status (August 2026):
 | Patch | Status |
 | --- | --- |
 | P1 — Identity | **Implemented** — one commit on `beam` |
-| P2 — `--embed-hwnd` | **Implemented and verified end to end, 2026-09-03** — three commits: the original, plus a deadlock fix and a geometry fix made after the first two-machine test failed |
+| P2 — `--embed-hwnd` | **Implemented; picture verified 2026-09-03, keyboard 2026-09-14** — the original, plus a deadlock fix, a geometry fix and a focus fix, each found by a two-machine test |
 | P3 — No UI of its own | **Implemented** — status helper in `app/beamstatus.{h,cpp}`, headless runners in `app/cli/headless.{h,cpp}` |
 | P4 — Headless `pair`/`quit` | **Implemented** — including idempotent re-pair |
 | P5 — Baked-in defaults | Not implemented, deliberately (lowest value; the CLI is manageable) |
@@ -50,8 +50,9 @@ plus an 8 ms polling sweep, then reparents it and rewrites its window styles in 
 — the hook, the sweep, the restyle, the race between them, and the risk of a single visible frame —
 collapses into passing a number on the command line. Beam's `embed.rs` gets deleted, not rewritten.
 
-Worth knowing: a child window composites *above* the WebView2 surface Beam's UI is drawn on, so
-Beam can frame the picture but not overlay it. That is a Beam-side concern, not this program's.
+Worth knowing: a child window composites above the WebView2 surface Beam's UI is drawn on **only
+once something raises it** — see the two sections below, which is where that assumption cost a week.
+Once raised, Beam can frame the picture but not overlay it.
 
 ### What the first two-machine test changed
 
@@ -81,6 +82,22 @@ documents implied a native child is simply always on top, and it is not.
 
 Worth remembering when this patch is next touched: every symptom pointed at this code — black
 picture, embedded window, geometry logs — and none of the fault was here.
+
+### Keyboard focus, 2026-09-14
+
+The next session found the stream took the mouse and not one keystroke. Reparenting alone does not
+bring focus, and SDL raises key events only for the window holding it — so `handleKeyEvent` was
+never called. The embedder was not claiming focus either (it shows its host with `SW_SHOWNA` and
+places it with `SWP_NOACTIVATE`, deliberately), so focus sat on the embedder's own UI.
+
+`SetFocus(streamHwnd)` after `SDL_ShowWindow`, and it belongs here rather than in the embedder for
+the same reason as everything else on this patch: a cross-process `SetFocus` is a synchronous
+message send into our thread across already-joined input queues. We focus a window we own.
+
+Note the shape this shares with the black screen: the mouse worked, the geometry was right, the logs
+were clean, and the missing piece was a window-manager state nobody had set. **Reparenting a window
+gives you none of size, z-order or focus — all three have to be asked for.** That is now the whole
+of this patch's hard-won knowledge.
 
 ---
 

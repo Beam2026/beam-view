@@ -1,6 +1,6 @@
 # How Beam drives this program
 
-Beam (`Beam`, private — github.com/Beam2026/BEAM, normally checked out beside this repo) runs
+Beam (`Beam`, GPL-3 — github.com/Beam2026/BEAM, normally checked out beside this repo) runs
 `beam-view` as a child process. This file is the
 contract between them. **It is defined in two places with nothing enforcing agreement** — here, and
 `desktop/src-tauri/src/engines.rs` in the Beam repo. Change one, change the other.
@@ -86,6 +86,23 @@ arrived" can be told apart by looking.
 
 With the z-order set, the video is above the page, so the embedder can frame the picture but not
 overlay it — in-session controls have to live outside the stage rectangle.
+
+**And one thing the embedder must *not* do: fight this program for keyboard focus.** On embedding,
+this program calls `SetFocus` on its own window. It has to: mouse messages go to the window under
+the cursor, but keyboard messages go to the focused window, and SDL only raises key events for a
+window holding input focus. Without it the stream takes the mouse and not one keystroke — and the
+on-screen keyboard fails too, since it synthesises into the focused window.
+
+That is deliberately *this* program's job, not the embedder's. A cross-process `SetFocus` would be a
+synchronous message send into our thread, and the cross-process `SetParent` has already joined the
+two input queues — the pairing that produced the original deadlock. We focus a window we own, which
+is safe, and the joined queues are what make it possible at all.
+
+The consequence the embedder should plan for: while a stream is live the keyboard belongs to the
+remote machine, so the embedder's own UI cannot have it. An in-app key handler will never fire —
+use a system-wide hotkey (`RegisterHotKey`) for anything that must work during a session.
+`Ctrl+Alt+Shift+Q` (quit) and `Ctrl+Alt+Shift+M` (toggle mouse mode) keep working throughout,
+because they are ours.
 
 **No UI of its own.** `stream`, `pair` and `quit` create no Qt window, overlay, or dialog. `pair`
 and `quit` do their work silently and exit 0, or report an error and exit 1. `pair` is idempotent:

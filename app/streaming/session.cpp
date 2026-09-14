@@ -2004,6 +2004,24 @@ void Session::exec()
             m_EmbedWindowHandle = (quintptr)streamHwnd;
 
             SDL_ShowWindow(m_Window);
+
+            // Take the keyboard. Without this the embedded stream receives the
+            // mouse but never a single keystroke: mouse messages go to the
+            // window under the cursor, keyboard messages go to the *focused*
+            // window, and SDL only raises SDL_KEYDOWN for a window holding
+            // input focus. Nothing else was claiming it -- the embedder shows
+            // its host window with SW_SHOWNA and places it with SWP_NOACTIVATE
+            // precisely so it does not steal focus -- so focus sat on the
+            // embedder's own UI and every key went there. The on-screen
+            // keyboard failed for the same reason, which is what gave it away.
+            //
+            // This program must be the one to do it. A cross-process SetFocus
+            // from the embedder would be a synchronous message send into our
+            // thread, and the cross-process SetParent above has already joined
+            // the two input queues -- the same pairing that once deadlocked
+            // both message loops. Focusing a window we own is free of that, and
+            // the joined queues are exactly what lets focus move here at all.
+            SetFocus(streamHwnd);
         }
         else {
             SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,

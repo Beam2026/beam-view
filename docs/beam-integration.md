@@ -30,14 +30,20 @@ repeatable, and safe to run against an already-paired host.
 
 ```powershell
 beam-view.exe pair   127.0.0.1 --pin 1234
-beam-view.exe stream 127.0.0.1 "Desktop" --resolution 1920x1080 --absolute-mouse enable --quit-after enable --embed-hwnd 1182734
+beam-view.exe stream 127.0.0.1 "Desktop" --display-mode borderless --resolution 1920x1080 --absolute-mouse enable --capture-system-keys always --quit-after enable
 beam-view.exe quit   127.0.0.1
 ```
 
-`--resolution` is the host's own screen size when Beam learned it in time (over signalling, not
-from this program), 1920x1080 otherwise. `--display-mode` is never passed: `--embed-hwnd`
-supersedes it entirely, since the embedded window has no chrome and no fullscreen mode of its own
-to select.
+`--display-mode borderless` is full-screen-desktop: the stream owns the screen for the session, and
+Beam hides its own window rather than hosting the picture inside it. `--resolution` is the
+**client's** own screen size, since that is what the picture fills; the host's Sunshine is
+configured to resize its capture to match. `--capture-system-keys always` is required, not optional:
+without it the Windows key opens the *client's* Start menu and takes the keyboard with it, and
+`fullscreen` mode will not do, because it is gated on `SDL_WINDOW_FULLSCREEN`.
+
+**`--embed-hwnd` is deliberately not used.** It still works; Beam abandoned it after four separate
+bugs traced back to being a `WS_CHILD`. The retrospective in [`patches.md`](patches.md) is required
+reading before anyone reaches for it again.
 
 Pairing is automatic and invisible: Beam generates the PIN, sends it to the host over its own
 signalling channel, and the host's copy of Beam approves it against Sunshine. Nobody types a PIN.
@@ -49,7 +55,8 @@ Ports carried by the tunnel — TCP 47984 (HTTPS/pairing), 47989 (HTTP), 48010 (
 
 All of this exists on the `beam` branch. Full breakdown in [`patches.md`](patches.md).
 
-**`--embed-hwnd <handle>`** (Windows only, decimal `u64`). The stream window is created hidden,
+**`--embed-hwnd <handle>`** (Windows only, decimal `u64`) — *supported, but no longer used by Beam;
+see the retrospective in [`patches.md`](patches.md)*. The stream window is created hidden,
 restyled to `WS_CHILD`, reparented into the given HWND and sized to fill its client area before it
 is ever shown — it never exists as a top-level window. Invalid or zero handles are rejected at parse
 time (exit 1).

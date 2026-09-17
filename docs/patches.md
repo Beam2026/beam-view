@@ -9,7 +9,7 @@ The base is a pinned upstream commit on the `beam` branch. Status (August 2026):
 | Patch | Status |
 | --- | --- |
 | P1 — Identity | **Implemented** — one commit on `beam` |
-| P2 — `--embed-hwnd` | **Implemented; picture verified 2026-09-03, keyboard 2026-09-14** — the original, plus a deadlock fix, a geometry fix and a focus fix, each found by a two-machine test |
+| P2 — `--embed-hwnd` | **Implemented, and no longer used by Beam** (2026-09-17). Four follow-up fixes were not enough; embedding was abandoned for a plain full-screen window. Kept because it works and is someone else's useful option — but read the retrospective below before reaching for it |
 | P3 — No UI of its own | **Implemented** — status helper in `app/beamstatus.{h,cpp}`, headless runners in `app/cli/headless.{h,cpp}` |
 | P4 — Headless `pair`/`quit` | **Implemented** — including idempotent re-pair |
 | P5 — Baked-in defaults | Not implemented, deliberately (lowest value; the CLI is manageable) |
@@ -45,13 +45,13 @@ Create the stream window as a `WS_CHILD` of a caller-supplied HWND, at creation.
 - `app/streaming/session.cpp` — apply it at `SDL_CreateWindow`, via `SDL_CreateWindowFrom` or by
   setting the parent before the window is shown.
 
-**This is the patch that justifies the fork.** Beam currently hides the window with a WinEvent hook
-plus an 8 ms polling sweep, then reparents it and rewrites its window styles in place. All of that
-— the hook, the sweep, the restyle, the race between them, and the risk of a single visible frame —
-collapses into passing a number on the command line. Beam's `embed.rs` gets deleted, not rewritten.
+**This was believed to be the patch that justified the fork. It was not, and that is the single most
+expensive mistake in this project's history.** It replaced a WinEvent hook and an 8 ms polling sweep
+with one command-line argument, which was a real simplification of *that* code — but it bought a
+harder problem than the one it solved. See the retrospective at the end of this section.
 
 Worth knowing: a child window composites above the WebView2 surface Beam's UI is drawn on **only
-once something raises it** — see the two sections below, which is where that assumption cost a week.
+once something raises it** — see the sections below, which is where that assumption cost a week.
 Once raised, Beam can frame the picture but not overlay it.
 
 ### What the first two-machine test changed
@@ -167,3 +167,34 @@ hard part: the transport.
 That is months of work and years behind Sunshine and Moonlight on tuning — adaptive bitrate, FEC,
 jitter buffering, HDR. It is the right destination and the wrong starting point. This fork is how
 you get most of the benefit now; revisit when the maintenance cost says otherwise.
+
+---
+
+## Retrospective on P2: why Beam stopped embedding, 2026-09-17
+
+Beam no longer passes `--embed-hwnd`. The stream is a plain borderless full-screen window
+(`--display-mode borderless`) and the embedder hides its own window for the session instead.
+
+The patch itself works. What it could not do is stop being a `WS_CHILD`, and four separate bugs came
+from that, each found by a two-machine test, each fixed, and each followed by another:
+
+1. **Black screen for a week.** A native child is above the WebView only while something keeps
+   raising its z-order. Nothing did. Every symptom pointed at the video pipeline; none of the fault
+   was there.
+2. **Deadlock.** The cross-process `SetParent` attaches both threads' input queues, so a synchronous
+   window call from the embedder froze both message loops.
+3. **No keyboard.** A `WS_CHILD` does not take focus from a click the way a top-level window does.
+   `SetFocus` on creation fixed the start of a session; the first time focus moved away — the local
+   Start menu was enough — it was gone for good, including the combo that ends the session.
+4. **No cursor, and a letterboxed picture.** The window can never be SDL-fullscreen, so the stream
+   was fitted into whatever the parent measured, with the bars as dead zones.
+
+**The lesson is about the shape of the evidence, not the Win32 details.** Four bugs in a row, each
+individually plausible, each with a local fix that worked — and the common cause was the
+architecture, not any of them. A run of unrelated-looking bugs in one area is itself the signal.
+Every remote-desktop client that does this well uses a separate top-level window; the fork spent
+weeks discovering why.
+
+Keep the patch. It is correct, it costs nothing while unused, and embedding is genuinely the right
+answer for a caller that needs the stream inside its own UI. Just do not reach for it to avoid a
+second window without pricing in that list.

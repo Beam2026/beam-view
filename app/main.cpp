@@ -429,7 +429,7 @@ int main(int argc, char *argv[])
     // Set these here to allow us to use the default QSettings constructor.
     // These also ensure that our cache directory is named correctly. As such,
     // it is critical that these be called before Path::initialize().
-    // These names decide where QSettings stores everything. They must NOT
+    // BEAM: These names decide where QSettings stores everything. They must NOT
     // match an installed Moonlight's names (Moonlight Game Streaming Project /
     // Moonlight), or this program shares host records and pairing certificates
     // with it — the class of bug that broke Beam's pairing.
@@ -998,7 +998,7 @@ int main(int argc, char *argv[])
         break;
     case GlobalCommandLineParser::StreamRequested:
         {
-            // Streaming runs with no UI of its own: Beam draws the loading
+            // BEAM: Streaming runs with no UI of its own: Beam draws the loading
             // screen and renders errors, so this process only produces the
             // stream window and "beam:" status lines on stdout.
             hasGUI = false;

@@ -510,7 +510,7 @@ void StreamCommandLineParser::parse(const QStringList &args, StreamingPreference
     }
 
 #ifdef Q_OS_WIN32
-    // Resolve --embed-hwnd option
+    // BEAM: resolve --embed-hwnd option
     if (parser.isSet("embed-hwnd")) {
         bool ok;
         m_EmbedHwnd = parser.value("embed-hwnd").toULongLong(&ok);

@@ -8,7 +8,7 @@
 #include "utils.h"
 
 #ifdef Q_OS_WIN32
-// For reparenting the stream window under --embed-hwnd
+// BEAM: for reparenting the stream window under --embed-hwnd
 #include <SDL_syswm.h>
 #endif
 
@@ -1746,6 +1746,8 @@ void Session::flushWindowEvents()
     SDL_PushEvent(&flushEvent);
 }
 
+// BEAM: everything from here to updateEmbeddedWindowSize() serves --embed-hwnd, which Beam no
+// longer uses (see docs/patches.md). Kept because the option is still supported.
 void Session::setEmbedParentWindow(quintptr handle)
 {
     m_EmbedParent = handle;
@@ -1946,6 +1948,7 @@ void Session::exec()
 #ifdef Q_OS_DARWIN
     std::string windowName = QString(m_Computer->name).toStdString();
 #else
+    // BEAM: window title
     std::string windowName = QString(m_Computer->name + " - Beam").toStdString();
 #endif
 

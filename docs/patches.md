@@ -16,6 +16,72 @@ The base is a pinned upstream commit on the `beam` branch. Status (August 2026):
 
 ---
 
+## Where Beam's code is, and what a sync will cost
+
+Two kinds of change, with very different maintenance costs. **Only the second kind conflicts.**
+
+**Files Beam added** — upstream has never heard of them, so they never conflict:
+
+```text
+app/beamstatus.{h,cpp}     the `beam:` status lines
+app/cli/headless.{h,cpp}   the headless stream/pair/quit runners
+docs/, CLAUDE.md           this documentation
+```
+
+**Files Beam modified** — every one of these is a conflict waiting for the next rebase, and the
+line count is a fair proxy for how much it will hurt:
+
+| File | Lines | What, and how exposed it is |
+| --- | --- | --- |
+| `app/streaming/session.cpp` | **172** | Embed window, geometry, focus. **The one to worry about** |
+| `app/main.cpp` | 39 | Settings identity, routing to the headless runners |
+| `app/cli/commandlineparser.cpp` | 23 | `--embed-hwnd` parsing |
+| `app/cli/pair.cpp` | 22 | Idempotent re-pair |
+| `app/app.pro` | 19 | Target name, new sources |
+| `app/streaming/session.h` | 12 | Embed members |
+| `pacer/pacer.cpp` | **5** | One call to `BeamStatus::firstFrame()` |
+| `cli/{listapps,quitstream,startstream}.cpp` | 2 each | Message wording |
+| `app/qml.qrc`, `Moonlight.exe.manifest` | 3, 1 | Removed QML, description |
+
+Every hook inside an upstream file is tagged, so the whole set is one command away:
+
+```bash
+grep -rn "// BEAM:" app/          # our hooks
+git diff <base>..HEAD --stat      # authoritative, always current
+```
+
+**The rule that keeps this cheap: a hook should be one line calling into our own file, not logic
+inlined into theirs.** `pacer.cpp` is the model — five lines, one call, and it will survive almost
+any upstream change. `session.cpp` is the counter-example at 172 lines, and it is the file that will
+fight every rebase. Much of it now serves `--embed-hwnd`, which Beam no longer uses; moving the rest
+behind a helper in our own files is the single highest-value thing anyone could do for future sync
+cost.
+
+**Organising by directory does not help.** Moving the added files into `app/beam/` would change
+nothing about conflicts — those files already never conflict — while adding path churn to `app.pro`,
+an upstream file, and separating `cli/headless.cpp` from the `cli/` runners it belongs with. The
+diff is the map, not the directory tree.
+
+### Syncing with upstream
+
+There is **no `upstream` remote configured**; add it before the first sync:
+
+```bash
+git remote add upstream https://github.com/moonlight-stream/moonlight-qt.git
+git fetch upstream
+git rebase --onto <new-tag> <current-base>     # base: 7cf8b46c, 2026-08-06
+```
+
+Patches are separate commits (P1..P4) on purpose, so a rebase replays them one at a time and a
+conflict names which patch it belongs to.
+
+**Check the deps pin first, before debugging anything else.** `setup-deps.ps1` is pinned to `v12`;
+`v11` shipped an FFmpeg whose 8-bit D3D11VA decoding was broken — audio played, no picture ever
+appeared, and it looked like a renderer bug. If decoding breaks after a sync, compare that tag
+against upstream's before looking at any of our code.
+
+---
+
 ## P1 — Identity
 
 Make it Beam's program rather than a renamed Moonlight.

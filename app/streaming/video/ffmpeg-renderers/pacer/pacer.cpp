@@ -343,7 +343,7 @@ void Pacer::renderFrame(AVFrame* frame)
     m_VideoStats->totalRenderTimeUs += (afterRender - beforeRender);
     m_VideoStats->renderedFrames++;
 
-    // Every rendered frame funnels through here, so this is where "the
+    // BEAM: Every rendered frame funnels through here, so this is where "the
     // picture is real" is decided. Emits only once per process.
     BeamStatus::firstFrame();
 

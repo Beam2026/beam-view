@@ -75,7 +75,7 @@ public:
         // Occurs when searched computer is found
         case Event::ComputerFound:
             if (m_State == StateSeekComputer) {
-                // Pair even if the cached state says we already are. Beam
+                // BEAM: Pair even if the cached state says we already are. Beam
                 // tunnels a different physical machine behind 127.0.0.1 every
                 // session, so a cached "paired" record describes last
                 // session's host, not this one. Re-pairing an already-trusted

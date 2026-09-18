@@ -546,7 +546,10 @@ unix:!macx: {
     INSTALLS += target desktop icons appstream
 }
 win32 {
-    RC_ICONS = moonlight.ico
+    # BEAM: our own icon, not Moonlight's. This is what the taskbar, Alt+Tab and Task Manager
+    # show during a session -- the stream window is a normal top-level window now, so its icon is
+    # the most visible piece of branding in the whole product.
+    RC_ICONS = beam.ico
     QMAKE_TARGET_COMPANY = Beam
     QMAKE_TARGET_DESCRIPTION = Beam streaming engine (modified Moonlight)
     QMAKE_TARGET_PRODUCT = beam-view

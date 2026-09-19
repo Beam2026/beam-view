@@ -3,7 +3,7 @@
 Beam (`Beam`, GPL-3 — github.com/Beam2026/BEAM, normally checked out beside this repo) runs
 `beam-view` as a child process. This file is the
 contract between them. **It is defined in two places with nothing enforcing agreement** — here, and
-`desktop/src-tauri/src/engines.rs` in the Beam repo. Change one, change the other.
+`desktop/src-tauri/src/viewer.rs` in the Beam repo. Change one, change the other.
 
 ## The shape of a session
 
@@ -30,9 +30,17 @@ repeatable, and safe to run against an already-paired host.
 
 ```powershell
 beam-view.exe pair   127.0.0.1 --pin 1234
-beam-view.exe stream 127.0.0.1 "Desktop" --display-mode borderless --resolution 1920x1080 --absolute-mouse enable --capture-system-keys always --quit-after enable
+beam-view.exe stream 127.0.0.1 "Desktop" --display-mode borderless --resolution 1920x1080 --absolute-mouse --capture-system-keys always --audio-on-host --quit-after
 beam-view.exe quit   127.0.0.1
 ```
+
+**Which of these take a value, and which do not, is not cosmetic.** `--display-mode`,
+`--resolution` and `--capture-system-keys` are value or choice options. `--absolute-mouse`,
+`--audio-on-host` and `--quit-after` are *toggles*: the parser registers each as a bare `--name`
+alongside a `--no-name` and reads them by presence. Beam used to write `--absolute-mouse enable`,
+and `enable` was not a value but a stray **positional** -- landing after `stream`, the host and the
+app name, where `StreamCommandLineParser` reads indices 0-2 and silently discards the rest. It
+worked only because it was thrown away. Corrected 2026-09-19.
 
 `--display-mode borderless` is full-screen-desktop: the stream owns the screen for the session, and
 Beam hides its own window rather than hosting the picture inside it. `--resolution` is the
@@ -40,6 +48,14 @@ Beam hides its own window rather than hosting the picture inside it. `--resoluti
 configured to resize its capture to match. `--capture-system-keys always` is required, not optional:
 without it the Windows key opens the *client's* Start menu and takes the keyboard with it, and
 `fullscreen` mode will not do, because it is gated on `SDL_WINDOW_FULLSCREEN`.
+
+**`--audio-on-host` is a server hint, despite the name, and Beam needs it on.** It is read in one
+place -- `nvhttp.cpp`, where it sets `localAudioPlayMode=1` on the launch request -- and no code
+path alters what this side receives or plays. It does *not* move audio to the host instead of the
+client: both get it. What it changes is Sunshine, which on `localAudioPlayMode=0` switches the
+host's default playback device to a virtual sink in order to capture, silencing the person sharing
+their screen for the whole session. Without it a host on a call cannot hear the conversation about
+what is on their own screen.
 
 **`--embed-hwnd` is deliberately not used.** It still works; Beam abandoned it after four separate
 bugs traced back to being a `WS_CHILD`. The retrospective in [`patches.md`](patches.md) is required

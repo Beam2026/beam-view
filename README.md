@@ -17,14 +17,18 @@ so that everything the user sees belongs to Beam. That is what this fork provide
 
 - **Headless.** No window of its own, no overlays, no dialogs. Every session is driven by command
   line arguments and ends by exiting.
-- **Embeddable.** `--embed-hwnd <handle>` makes the stream window a child of a window the host
-  application owns. It is created hidden, restyled, reparented and sized before it is ever shown, so
-  it never exists on screen as a top-level window.
+- **Embeddable, though Beam no longer embeds.** `--embed-hwnd <handle>` makes the stream window a
+  child of a window the host application owns — created hidden, restyled, reparented and sized
+  before it is ever shown. Beam used this and abandoned it: a `WS_CHILD` composites above a WebView
+  only while something keeps raising it, a cross-process `SetParent` joins both input queues, it
+  never takes focus from a click, and it can never be SDL-fullscreen. Beam now hides its own window
+  and lets this program own the screen. The flag stays supported; see `docs/patches.md` before
+  reaching for it.
 - **Machine-readable status.** Progress and failures arrive as `beam:` lines on stdout —
   `connecting`, `first-frame`, `error <code> <text>`, `ended <reason>` — rather than as text on a
   screen. The host application decides what the user is told.
-- **Repeatable pairing.** Every session pairs fresh, because the address is always `127.0.0.1` and
-  that is a different physical machine every time.
+- **Repeatable pairing.** Every session pairs fresh, because the address is always
+  `127.0.0.1:48989` and that is a different physical machine every time.
 
 Every modification is catalogued in [`docs/patches.md`](docs/patches.md), and each is a commit on
 the `beam` branch against a pinned upstream base.
@@ -32,9 +36,9 @@ the `beam` branch against a pinned upstream base.
 ## How it is used
 
 ```powershell
-beam-view.exe pair   127.0.0.1 --pin 1234
-beam-view.exe stream 127.0.0.1 "Desktop" --embed-hwnd <handle> --resolution 1920x1080
-beam-view.exe quit   127.0.0.1
+beam-view.exe pair   127.0.0.1:48989 --pin 1234
+beam-view.exe stream 127.0.0.1:48989 "Desktop" --display-mode borderless --resolution 1920x1080
+beam-view.exe quit   127.0.0.1:48989
 ```
 
 The full contract — every flag, every status line, and the rules both sides must respect — is in

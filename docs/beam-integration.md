@@ -15,7 +15,15 @@ beam-view → 127.0.0.1:ports → client-agent ══P2P══ host-agent → 12
 ```
 
 Every address this program is given is therefore **always `127.0.0.1`**, on both machines, in every
-session.
+session — and always **with a port**, `127.0.0.1:48989`.
+
+The port matters and is not decoration. Beam runs its Sunshine on its own base, 48989, rather than
+GameStream's 47989, so that a Sunshine the user installed for themselves cannot collide with it.
+This program is told that base in the host argument; `addNewHostManually` parses it with `QUrl` and
+honours `url.port(DEFAULT_HTTP_PORT)`, and `ComputerSeeker::matchComputer` compares against
+`NvAddress::toString()`, which renders `host:port`. No `--port` flag was needed — that was
+established by shipping the form with the port already in use and confirming a session behaved
+exactly as before.
 
 That has a consequence worth internalising: **`127.0.0.1` is a different physical machine every
 time.** Any state cached against that address — pairing certificates most of all — describes
@@ -29,9 +37,9 @@ repeatable, and safe to run against an already-paired host.
 ## What Beam invokes
 
 ```powershell
-beam-view.exe pair   127.0.0.1 --pin 1234
-beam-view.exe stream 127.0.0.1 "Desktop" --display-mode borderless --resolution 1920x1080 --absolute-mouse --capture-system-keys always --audio-on-host --quit-after
-beam-view.exe quit   127.0.0.1
+beam-view.exe pair   127.0.0.1:48989 --pin 1234
+beam-view.exe stream 127.0.0.1:48989 "Desktop" --display-mode borderless --resolution 1920x1080 --absolute-mouse --capture-system-keys always --audio-on-host --quit-after
+beam-view.exe quit   127.0.0.1:48989
 ```
 
 **Which of these take a value, and which do not, is not cosmetic.** `--display-mode`,
@@ -64,8 +72,14 @@ reading before anyone reaches for it again.
 Pairing is automatic and invisible: Beam generates the PIN, sends it to the host over its own
 signalling channel, and the host's copy of Beam approves it against Sunshine. Nobody types a PIN.
 
-Ports carried by the tunnel — TCP 47984 (HTTPS/pairing), 47989 (HTTP), 48010 (RTSP); UDP 47998
-(video), 47999 (control), 48000 (audio).
+Ports carried by the tunnel, all derived from Beam's base of 48989 — TCP 48984 (HTTPS/pairing),
+48989 (HTTP), 49010 (RTSP); UDP 48998 (video), 48999 (control), 49000 (audio). Sunshine's web UI at
+48990 is host-local and is not tunnelled.
+
+Both ends of the tunnel use the same numbers, so the client agent this program talks to listens on
+exactly the ports the host's Sunshine advertises in `serverinfo`. That is why the base can move at
+all: if only one side moved, this program would follow `HttpsPort` to a port nothing local was
+listening on.
 
 ## The contract as implemented
 

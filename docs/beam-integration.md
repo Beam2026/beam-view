@@ -169,25 +169,32 @@ human-readable and free to change. Exit code is 0 for a clean session, 1 otherwi
 is emitted so an undrained pipe cannot fill and block this process — but Beam should still drain
 both pipes with reader threads (the `agent.rs` pattern) when it starts parsing status lines.
 
-### What this replaces on the Beam side
+### What this replaced on the Beam side
 
-- The `SetWinEventHook` + `EnumWindows` sweep + reparent (`embed.rs`) — pass `--embed-hwnd` instead.
-- The `local connection on 48010` + 1.5 s reveal guess — reveal on `beam: first-frame`.
-- The `already paired` stderr check in `engines.rs` — `pair` now exits 0 in that case.
-- The expected exe name is now `beam-view.exe`: update `engines.rs` (`bundled()` call, the two
-  system-path fallbacks become meaningless), `fetch-engines.mjs` (`expect`), and the
-  `finds_both_engines_in_the_fetched_tree` test together.
+All of this has landed; it is kept as the record of what the contract was worth.
+
+- A `SetWinEventHook` + `EnumWindows` sweep that hunted for this program's window and reparented
+  it. Beam tried `--embed-hwnd` next and abandoned that too — it now hides its own window and
+  lets this one own the screen.
+- Guessing the moment to reveal the stream by watching Beam's own tunnel agent for the RTSP
+  connection and then waiting 1.5 s. Replaced by `beam: first-frame`.
+- An `already paired` check against this program's stderr. `pair` exits 0 in that case.
+- The exe name: `moonlight.exe` became `beam-view.exe` across `engines.rs`, `fetch-engines.mjs`
+  and its test, and the bundled tree moved to `resources/engines/beam-view/`.
 
 ## Rules that bind this side
 
-**Stay a separate process.** Beam invokes this over a command line and that is the entire basis on
-which Beam's own source stays proprietary. See the Licence section of `CLAUDE.md`.
+**Stay a separate process.** This used to be a licence argument. It is not one any more — Beam is
+GPL-3 as well, so linking would threaten nothing. What survives is the engineering: separate
+processes buy crash isolation, let either engine be updated on its own, and keep this fork
+rebaseable against upstream. Beam may revisit that trade deliberately, with a measurement behind
+it; the CLI is the default, not a wall.
 
-**Do not share settings with an installed Moonlight.** `app/main.cpp` currently uses upstream's
-organisation and application names, so the settings live in
-`HKCU\Software\Moonlight Game Streaming Project\Moonlight` — the same key any Moonlight the user
-installed writes to. Beam accumulated four stale host records there, all claiming `127.0.0.1`, and
-pairing broke. The fork must own its own settings location.
+**Do not share settings with an installed Moonlight.** `app/main.cpp` sets the organisation to
+`Beam` and the application to `beam-view`, so settings live under `HKCU\Software\Beam\beam-view`
+rather than upstream's `Moonlight Game Streaming Project\Moonlight`. That is not cosmetic: while
+the two shared a key, this program accumulated four stale host records all claiming `127.0.0.1`
+and pairing broke. Do not move it back.
 
 **Errors belong to Beam.** When something fails, report it on stdout and exit. Do not put a dialog
 on screen: the user is looking at Beam, and a message box from a program they have never heard of
@@ -197,11 +204,11 @@ is both confusing and the one thing this whole exercise is meant to prevent.
 
 1. Build a full deployable tree — `scripts\build-arch.bat Release x64`.
 2. Copy `build\deploy-x64-release\` over Beam's bundled engine at
-   `desktop\src-tauri\resources\engines\moonlight\`, or point `engines.rs` at your build.
+   `desktop\src-tauri\resources\engines\beam-view\`, or point `engines.rs` at your build.
 3. Run Beam on two machines and connect. Loopback on one machine will not work: the client agent
    binds the same ports Sunshine listens on.
 
-Once this repo publishes releases, `desktop/scripts/fetch-engines.mjs` in the Beam repo switches
-from upstream's portable zip to ours — it already pins versions and verifies layout, so that is
-close to a URL change. It also generates `THIRD-PARTY-NOTICE.txt`, which must then describe
-`beam-view` as a *modified* Moonlight and link to this repo's source.
+`desktop/scripts/fetch-engines.mjs` in the Beam repo already pulls this repo's release rather
+than upstream's portable zip, pinned by tag, and verifies the layout it unpacks. It also generates
+`THIRD-PARTY-NOTICE.txt`, which describes `beam-view` as a *modified* Moonlight and links to this
+repo's source. A new release is a tag and a URL in that file.

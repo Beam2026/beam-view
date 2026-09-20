@@ -192,10 +192,11 @@ from `Pacer::renderFrame()`, the one funnel every rendered frame passes through.
 pipe, logging below Error level is suppressed so an undrained pipe buffer cannot fill up and block
 this process — Beam should still drain both pipes once its reader lands.
 
-`beam: first-frame` matters most. Beam currently infers the moment to reveal the window by watching
-its own tunnel agent for the RTSP connection on port 48010 and then waiting 1.5 s — a guess biased
-long, because revealing early leaks this program's connection screen. An explicit signal removes the
-guess and the delay.
+`beam: first-frame` matters most, and it is what Beam acts on. Before it existed, Beam inferred the
+moment by watching its own tunnel agent for the RTSP connection and then waiting 1.5 s — a guess
+biased long, because revealing early leaks this program's connection screen. Beam now hides its own
+window on this line instead, so the stream is the only window on screen and there is no delay to
+tune.
 
 Error text goes to Beam, which renders it in its own words. Never a dialog: the user is looking at
 Beam and has never heard of this program.
@@ -227,8 +228,9 @@ Lowest value of the five. Do it last, or skip it if the CLI stays manageable.
 If this list grows well past five patches, or a rebase starts taking real work rather than an
 afternoon, that is the signal to reconsider. The alternative is owning the pipeline outright —
 Desktop Duplication for capture, NVENC/AMF/QSV to encode, Media Foundation or D3D11VA to decode,
-rendering into Beam's own swapchain. No GPL anywhere, complete control, and Beam already owns the
-hard part: the transport.
+rendering into Beam's own swapchain. Complete control, and Beam already owns the hard part: the
+transport. (That used to be pitched as "no GPL anywhere" too. Beam is GPL-3 now, so the licence is
+not a reason for anything — the reason is the rebase bill this file exists to measure.)
 
 That is months of work and years behind Sunshine and Moonlight on tuning — adaptive bitrate, FEC,
 jitter buffering, HDR. It is the right destination and the wrong starting point. This fork is how

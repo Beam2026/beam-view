@@ -6,6 +6,7 @@
 #include <Limelight.h>
 #include "SDL_compat.h"
 #include "utils.h"
+#include "beamstatus.h"
 
 #ifdef Q_OS_WIN32
 // BEAM: for reparenting the stream window under --embed-hwnd
@@ -1912,6 +1913,18 @@ void Session::exec()
     // We always want a resizable window with High DPI enabled
     Uint32 defaultWindowFlags = SDL_WINDOW_ALLOW_HIGHDPI | SDL_WINDOW_RESIZABLE;
 
+    // BEAM: hidden until there is a picture in it.
+    //
+    // The window is created several hundred milliseconds before the first frame arrives -- the
+    // renderer has to exist before anything can be decoded into it -- and for that gap it was an
+    // empty black full-screen window sitting on top of Beam. Beam cannot hide this by waiting,
+    // because it only learns there is a picture from `beam: first-frame`, which is emitted *after*
+    // the frame this window was already showing nothing in front of.
+    //
+    // The embedded path below has always created it hidden for the same reason, and proves that
+    // rendering into a window nobody can see works. The event loop shows it on the first frame.
+    defaultWindowFlags |= SDL_WINDOW_HIDDEN;
+
 #ifdef Q_OS_WIN32
     if (m_EmbedParent != 0) {
         // Created hidden so it can be restyled and reparented into the
@@ -2127,7 +2140,17 @@ void Session::exec()
     // Hijack this thread to be the SDL main thread. We have to do this
     // because we want to suspend all Qt processing until the stream is over.
     SDL_Event event;
+    bool windowShown = false;
     for (;;) {
+        // BEAM: the window was created hidden; reveal it the moment it has a frame in it. Checked
+        // here rather than from `firstFrame()` because that runs on the render thread, and SDL
+        // window calls belong to the thread that pumps its events -- this one.
+        if (!windowShown && m_EmbedParent == 0 && BeamStatus::hasRenderedFrame()) {
+            SDL_ShowWindow(m_Window);
+            SDL_RaiseWindow(m_Window);
+            windowShown = true;
+        }
+
 #ifdef Q_OS_WIN32
         // In embedded mode our size follows the parent's client area
         if (m_EmbedParent != 0) {

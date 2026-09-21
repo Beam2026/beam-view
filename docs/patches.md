@@ -87,9 +87,16 @@ against upstream's before looking at any of our code.
 Make it Beam's program rather than a renamed Moonlight.
 
 - `app/app.pro` — `TARGET`, `QMAKE_TARGET_COMPANY`, `QMAKE_TARGET_DESCRIPTION`,
-  `QMAKE_TARGET_PRODUCT`; icon resources.
-- `app/main.cpp` — `setOrganizationName`, `setOrganizationDomain`, `setApplicationName`.
-- `app/streaming/session.cpp` — the window title, currently `<computer> - Moonlight`.
+  `QMAKE_TARGET_PRODUCT`, and `RC_ICONS = beam.ico` for the executable.
+- `app/main.cpp` — `setOrganizationName`, `setOrganizationDomain`, `setApplicationName`, and
+  `setWindowIcon`.
+- `app/streaming/session.cpp` — the window title, now `<computer> - Beam`.
+
+**There are two icons, and only one of them is the exe’s.** `RC_ICONS` is what Explorer shows.
+The *window* icon is set separately by `setWindowIcon`, and it is what Task Manager shows beneath a
+process and what Alt+Tab shows. That one was still `res/moonlight.svg` until 2026-09-21, so anyone
+who left the stream to reach their own desktop was shown the name this whole file exists to keep
+them from learning. It is now `res/beam.png`.
 
 **The `main.cpp` names are the important part, and not for branding.** They decide where `QSettings`
 stores everything: today `HKCU\Software\Moonlight Game Streaming Project\Moonlight`, shared with any
@@ -199,6 +206,30 @@ guess and the delay.
 
 Error text goes to Beam, which renders it in its own words. Never a dialog: the user is looking at
 Beam and has never heard of this program.
+
+---
+
+### Hidden until there is a picture, 2026-09-21
+
+The window is created several hundred milliseconds before the first frame arrives — the renderer
+has to exist before anything can be decoded into it — and for that gap it was an empty black
+full-screen window on top of Beam. Measured from a real session: the renderer was created at
+5.992 s and `beam: first-frame` came at 6.251 s.
+
+Beam cannot fix this from outside. It only learns there is a picture from `beam: first-frame`,
+which is emitted *after* the frame that this window had already been showing nothing in front of.
+
+So the window is now created with `SDL_WINDOW_HIDDEN` in the ordinary case too, and the SDL event
+loop shows it once `BeamStatus::hasRenderedFrame()` is true. The embedded path has always created
+it hidden for the same reason, which is what proves that rendering into a window nobody can see
+works.
+
+Shown from the event loop rather than from `firstFrame()`, because that runs on the render thread
+and SDL window calls belong to the thread that pumps its events.
+
+A consequence worth knowing: if no frame ever arrives, this window never appears at all. That is
+the better failure — Beam stays on screen and says what went wrong in its own words, instead of a
+black rectangle covering it.
 
 ---
 

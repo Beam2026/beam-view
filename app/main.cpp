@@ -927,7 +927,13 @@ int main(int argc, char *argv[])
 #ifndef Q_OS_DARWIN
     // Set the window icon except on macOS where we want to keep the
     // modified macOS 11 style rounded corner icon.
-    app.setWindowIcon(QIcon(":/res/moonlight.svg"));
+    // BEAM: wear Beam's icon, not Moonlight's.
+    //
+    // The exe already carried it (RC_ICONS in app.pro), which is what Windows shows in Explorer.
+    // This is the *window* icon, which is what Task Manager shows beneath a process and what
+    // Alt+Tab shows -- and it was still Moonlight's, so anyone who left the stream to find their
+    // own desktop was shown the name Beam exists to keep them from learning.
+    app.setWindowIcon(QIcon(":/res/beam.png"));
 #endif
 
     // This is necessary to show our icon correctly on Wayland

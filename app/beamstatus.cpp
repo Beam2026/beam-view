@@ -25,14 +25,23 @@ void connecting()
     emitLine("connecting");
 }
 
+namespace {
+// Set once, from the render thread, and read from the SDL event loop.
+std::atomic_bool s_RenderedFrame(false);
+}
+
 void firstFrame()
 {
     // Called for every rendered frame from the render thread
-    static std::atomic_bool emitted(false);
-    if (emitted.exchange(true)) {
+    if (s_RenderedFrame.exchange(true)) {
         return;
     }
     emitLine("first-frame");
+}
+
+bool hasRenderedFrame()
+{
+    return s_RenderedFrame.load();
 }
 
 void error(ErrorCode code, const QString& text)

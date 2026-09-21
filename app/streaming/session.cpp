@@ -39,8 +39,8 @@
 #include <QtEndian>
 #include <QCoreApplication>
 #include <QThreadPool>
-#include <QSvgRenderer>
-#include <QPainter>
+// BEAM: QImage replaces QSvgRenderer and QPainter, which were here only to rasterise the
+// Moonlight icon this window used to wear.
 #include <QImage>
 #include <QGuiApplication>
 #include <QCursor>
@@ -2042,17 +2042,22 @@ void Session::exec()
     }
 #endif
 
-    QSvgRenderer svgIconRenderer(QString(":/res/moonlight.svg"));
-    QImage svgImage(ICON_SIZE, ICON_SIZE, QImage::Format_RGBA8888);
-    svgImage.fill(0);
-
-    QPainter svgPainter(&svgImage);
-    svgIconRenderer.render(&svgPainter);
-    SDL_Surface* iconSurface = SDL_CreateRGBSurfaceWithFormatFrom((void*)svgImage.constBits(),
-                                                                  svgImage.width(),
-                                                                  svgImage.height(),
+    // BEAM: this window wears Beam's icon.
+    //
+    // Setting it on the QGuiApplication is not enough and looked like it was. This is an SDL
+    // window, not a Qt one, and SDL sets its icon explicitly right here -- so the Qt icon was
+    // overridden a few lines later and Task Manager went on showing Moonlight's beneath the
+    // process. Kept as a QImage rather than a QSvgRenderer because Beam's artwork is a PNG;
+    // the surface below borrows this image's bits, so it has to outlive the surface.
+    QImage iconImage = QImage(":/res/beam.png")
+                          .convertToFormat(QImage::Format_RGBA8888)
+                          .scaled(ICON_SIZE, ICON_SIZE, Qt::IgnoreAspectRatio,
+                                  Qt::SmoothTransformation);
+    SDL_Surface* iconSurface = SDL_CreateRGBSurfaceWithFormatFrom((void*)iconImage.constBits(),
+                                                                  iconImage.width(),
+                                                                  iconImage.height(),
                                                                   32,
-                                                                  4 * svgImage.width(),
+                                                                  4 * iconImage.width(),
                                                                   SDL_PIXELFORMAT_RGBA32);
 #ifndef Q_OS_DARWIN
     // Other platforms seem to preserve our Qt icon when creating a new window.

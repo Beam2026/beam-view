@@ -27,7 +27,7 @@ enum ErrorCode {
 void connecting();
 
 // Emitted at most once per process, from the first successfully rendered
-// video frame. This is Beam's trigger to reveal the embedded window.
+// video frame. This is Beam's trigger to hide its own window.
 void firstFrame();
 
 void error(ErrorCode code, const QString& text);

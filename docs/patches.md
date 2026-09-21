@@ -87,9 +87,24 @@ against upstream's before looking at any of our code.
 Make it Beam's program rather than a renamed Moonlight.
 
 - `app/app.pro` — `TARGET`, `QMAKE_TARGET_COMPANY`, `QMAKE_TARGET_DESCRIPTION`,
-  `QMAKE_TARGET_PRODUCT`; icon resources.
-- `app/main.cpp` — `setOrganizationName`, `setOrganizationDomain`, `setApplicationName`.
-- `app/streaming/session.cpp` — the window title, currently `<computer> - Moonlight`.
+  `QMAKE_TARGET_PRODUCT`, and `RC_ICONS = beam.ico` for the executable.
+- `app/main.cpp` — `setOrganizationName`, `setOrganizationDomain`, `setApplicationName`, and
+  `setWindowIcon`.
+- `app/streaming/session.cpp` — the window title, now `<computer> - Beam`.
+
+**There are two icons, and only one of them is the exe’s.** `RC_ICONS` is what Explorer shows.
+The *window* icon is set separately by `setWindowIcon`, and it is what Task Manager shows beneath a
+process and what Alt+Tab shows. That one was still `res/moonlight.svg` until 2026-09-21, so anyone
+who left the stream to reach their own desktop was shown the name this whole file exists to keep
+them from learning. It is now `res/beam.png`.
+
+And that was still not the stream window, which is the one a user actually reaches. That window
+belongs to **SDL**, not Qt, and `session.cpp` renders an icon from `:/res/moonlight.svg` and applies it
+with `SDL_SetWindowIcon` a few lines after creating it -- overriding the application icon entirely.
+Setting it in `main.cpp` looked like the fix and changed nothing visible. Both are Beam’s now, and
+`res/moonlight.svg` is no longer compiled into the binary at all — nothing read it once the window
+stopped. The file stays on disk, because `app.pro` still installs it on Linux and
+`scripts/generate-ico.sh` still rasterises it; neither is a path Beam ships.
 
 **The `main.cpp` names are the important part, and not for branding.** They decide where `QSettings`
 stores everything: today `HKCU\Software\Moonlight Game Streaming Project\Moonlight`, shared with any
@@ -202,6 +217,32 @@ Beam and has never heard of this program.
 
 ---
 
+### The window cannot be hidden until the first frame, 2026-09-21
+
+Tried and reverted the same evening, and worth recording so nobody tries it twice.
+
+The stream window is created several hundred milliseconds before the first frame arrives — the
+renderer has to exist before anything can be decoded into it — and for that gap it is an empty
+black full-screen window on top of the embedder. Measured on a real session: the renderer was
+created at 5.992 s and `beam: first-frame` came at 6.251 s.
+
+The obvious fix is to create it with `SDL_WINDOW_HIDDEN` and show it on the first rendered frame.
+It does not work: **nothing renders into a window that was never shown**, so the first frame never
+arrives, the window is never shown, and the session waits on itself forever. Beam sat on "Waiting
+for their screen…" with a live `beam-view.exe` and no window at all.
+
+Two smaller traps on the way there, in case a later attempt gets further:
+
+- The creation flag alone is undone by `SDL_SetWindowFullscreen`, which puts the window on screen
+  on Windows.
+- The embedded path *does* create it hidden and show it later, which is what made this look
+  safe. It gets away with it because it shows the window during setup, long before any frame.
+
+So the gap belongs to whoever is *behind* this window, not to this program: the embedder should
+stay in front until it sees `beam: first-frame`, which it already receives.
+
+---
+
 ## P4 — Headless `pair` and `quit`
 
 Both currently open a window and show the connection overlay — before the session and after it. On
@@ -227,8 +268,10 @@ Lowest value of the five. Do it last, or skip it if the CLI stays manageable.
 If this list grows well past five patches, or a rebase starts taking real work rather than an
 afternoon, that is the signal to reconsider. The alternative is owning the pipeline outright —
 Desktop Duplication for capture, NVENC/AMF/QSV to encode, Media Foundation or D3D11VA to decode,
-rendering into Beam's own swapchain. No GPL anywhere, complete control, and Beam already owns the
-hard part: the transport.
+rendering into Beam's own swapchain. Complete control, no fork to rebase, and Beam already owns the
+hard part: the transport. (This used to read "no GPL anywhere" as though that were the prize. Beam
+is GPL-3 itself, so it is not one — the prize is the maintenance, which is the argument that still
+holds.)
 
 That is months of work and years behind Sunshine and Moonlight on tuning — adaptive bitrate, FEC,
 jitter buffering, HDR. It is the right destination and the wrong starting point. This fork is how

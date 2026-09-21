@@ -26,11 +26,15 @@ follow, and one boundary must never be crossed:
 - **Say that it is modified.** GPL-3 §5(a) requires prominent notices that the work was changed and
   when. Keep them in source headers, the README, and release notes.
 - **Publish this source.** Anyone receiving a Beam build that contains this program is entitled to
-  it. That is why this repo is public and Beam's is not.
-- **Never link this into Beam.** Beam invokes it as a separate process. Turn any of it into a
-  library Beam links against and Beam becomes a combined work — GPL-3 then covers Beam's own
-  source, which is the exact outcome the whole architecture exists to prevent. A CLI is a boundary;
-  a DLL is not.
+  it. Both repos are public, so this costs nothing beyond keeping the notices right.
+- **Keep it a separate process — as an engineering rule, not a legal one.** Beam is **GPL-3**
+  itself (`LICENSE` in that repo), so linking this in threatens nothing about its licence; the
+  claim that it did was true of an earlier, proprietary Beam and is kept here only so nobody
+  re-derives it from an old commit. What has not changed is the cost. A vendored engine is a fork
+  somebody rebases forever, and this repo is the standing proof of what that costs. Separate
+  processes also buy crash isolation and independent engine updates. So it stays a CLI by
+  default — but that is now a trade-off someone may make deliberately, with a measurement behind
+  it, rather than a line that cannot be crossed.
 
 No on-screen attribution is required: §5(d) only obliges keeping legal notices in an interactive UI
 *if the original displayed them*, and Moonlight shows no copyright splash. Rebranding the UI

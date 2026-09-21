@@ -268,8 +268,10 @@ Lowest value of the five. Do it last, or skip it if the CLI stays manageable.
 If this list grows well past five patches, or a rebase starts taking real work rather than an
 afternoon, that is the signal to reconsider. The alternative is owning the pipeline outright —
 Desktop Duplication for capture, NVENC/AMF/QSV to encode, Media Foundation or D3D11VA to decode,
-rendering into Beam's own swapchain. No GPL anywhere, complete control, and Beam already owns the
-hard part: the transport.
+rendering into Beam's own swapchain. Complete control, no fork to rebase, and Beam already owns the
+hard part: the transport. (This used to read "no GPL anywhere" as though that were the prize. Beam
+is GPL-3 itself, so it is not one — the prize is the maintenance, which is the argument that still
+holds.)
 
 That is months of work and years behind Sunshine and Moonlight on tuning — adaptive bitrate, FEC,
 jitter buffering, HDR. It is the right destination and the wrong starting point. This fork is how

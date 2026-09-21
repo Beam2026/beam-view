@@ -155,25 +155,33 @@ human-readable and free to change. Exit code is 0 for a clean session, 1 otherwi
 is emitted so an undrained pipe cannot fill and block this process — but Beam should still drain
 both pipes with reader threads (the `agent.rs` pattern) when it starts parsing status lines.
 
-### What this replaces on the Beam side
+### What this replaced on the Beam side — all landed
 
-- The `SetWinEventHook` + `EnumWindows` sweep + reparent (`embed.rs`) — pass `--embed-hwnd` instead.
-- The `local connection on 48010` + 1.5 s reveal guess — reveal on `beam: first-frame`.
-- The `already paired` stderr check in `engines.rs` — `pair` now exits 0 in that case.
-- The expected exe name is now `beam-view.exe`: update `engines.rs` (`bundled()` call, the two
-  system-path fallbacks become meaningless), `fetch-engines.mjs` (`expect`), and the
-  `finds_both_engines_in_the_fetched_tree` test together.
+Kept as a record of what the contract removed, not as work outstanding. Every item is done.
+
+- The `SetWinEventHook` + `EnumWindows` sweep + reparent — `embed.rs` was deleted from Beam and
+  the stream is a top-level window. **This bullet used to say "pass `--embed-hwnd` instead",
+  which contradicts the rule above and is exactly the advice that cost a week of black screen.**
+  Read the `--embed-hwnd` entry before reaching for it.
+- The `local connection on 48010` + 1.5 s reveal guess — Beam reveals on `beam: first-frame`.
+- The `already paired` stderr check in `engines.rs` — `pair` exits 0 in that case.
+- The expected exe name is `beam-view.exe` throughout Beam: `engines.rs`, `fetch-engines.mjs`
+  and the `finds_both_engines_in_the_fetched_tree` test all agree.
 
 ## Rules that bind this side
 
-**Stay a separate process.** Beam invokes this over a command line and that is the entire basis on
-which Beam's own source stays proprietary. See the Licence section of `CLAUDE.md`.
+**Stay a separate process — for engineering reasons now, not licensing ones.** Beam is GPL-3
+itself, as the first line of this document says, so nothing about linking threatens its licence.
+What it would cost is a fork somebody has to rebase forever, plus the crash isolation and the
+independent engine updates that separate processes buy. See the Licence section of `CLAUDE.md`,
+which used to give the proprietary-source reason and no longer does.
 
-**Do not share settings with an installed Moonlight.** `app/main.cpp` currently uses upstream's
-organisation and application names, so the settings live in
+**Do not share settings with an installed Moonlight.** Done: `app/main.cpp` sets the organisation
+to `Beam` and the application to `beam-view`, so settings live in `HKCU\Software\Beam\beam-view`
+and Beam clears its `hosts` key there before pairing. They used to land in
 `HKCU\Software\Moonlight Game Streaming Project\Moonlight` — the same key any Moonlight the user
-installed writes to. Beam accumulated four stale host records there, all claiming `127.0.0.1`, and
-pairing broke. The fork must own its own settings location.
+installed writes to — where Beam accumulated four stale host records, all claiming `127.0.0.1`,
+and pairing broke. Keep the fork owning its own settings location.
 
 **Errors belong to Beam.** When something fails, report it on stdout and exit. Do not put a dialog
 on screen: the user is looking at Beam, and a message box from a program they have never heard of

@@ -98,6 +98,11 @@ process and what Alt+Tab shows. That one was still `res/moonlight.svg` until 202
 who left the stream to reach their own desktop was shown the name this whole file exists to keep
 them from learning. It is now `res/beam.png`.
 
+And that was still not the stream window, which is the one a user actually reaches. That window
+belongs to **SDL**, not Qt, and `session.cpp` renders an icon from `:/res/moonlight.svg` and applies it
+with `SDL_SetWindowIcon` a few lines after creating it -- overriding the application icon entirely.
+Setting it in `main.cpp` looked like the fix and changed nothing visible. Both are Beam’s now.
+
 **The `main.cpp` names are the important part, and not for branding.** They decide where `QSettings`
 stores everything: today `HKCU\Software\Moonlight Game Streaming Project\Moonlight`, shared with any
 Moonlight the user has installed. Beam accumulated four stale host records there — all claiming
@@ -226,6 +231,12 @@ works.
 
 Shown from the event loop rather than from `firstFrame()`, because that runs on the render thread
 and SDL window calls belong to the thread that pumps its events.
+
+**The creation flag alone did not do it.** Going full screen puts the window on screen on Windows,
+so `SDL_SetWindowFullscreen` undid the hiding a few lines later and the black rectangle survived the
+first attempt at this. It is hidden again immediately after that call: the full-screen state is
+already applied by then, and the two calls are microseconds apart rather than the few hundred
+milliseconds the first frame takes.
 
 A consequence worth knowing: if no frame ever arrives, this window never appears at all. That is
 the better failure — Beam stays on screen and says what went wrong in its own words, instead of a

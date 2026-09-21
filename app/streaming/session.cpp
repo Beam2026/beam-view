@@ -40,8 +40,7 @@
 #include <QtEndian>
 #include <QCoreApplication>
 #include <QThreadPool>
-#include <QSvgRenderer>
-#include <QPainter>
+// BEAM: QSvgRenderer and QPainter went with the Moonlight icon this window used to render.
 #include <QImage>
 #include <QGuiApplication>
 #include <QCursor>
@@ -2055,17 +2054,22 @@ void Session::exec()
     }
 #endif
 
-    QSvgRenderer svgIconRenderer(QString(":/res/moonlight.svg"));
-    QImage svgImage(ICON_SIZE, ICON_SIZE, QImage::Format_RGBA8888);
-    svgImage.fill(0);
-
-    QPainter svgPainter(&svgImage);
-    svgIconRenderer.render(&svgPainter);
-    SDL_Surface* iconSurface = SDL_CreateRGBSurfaceWithFormatFrom((void*)svgImage.constBits(),
-                                                                  svgImage.width(),
-                                                                  svgImage.height(),
+    // BEAM: this window wears Beam's icon.
+    //
+    // Setting it on the QGuiApplication is not enough and looked like it was. This is an SDL
+    // window, not a Qt one, and SDL sets its icon explicitly right here -- so the Qt icon was
+    // overridden a few lines later and Task Manager went on showing Moonlight's beneath the
+    // process. Kept as a QImage rather than a QSvgRenderer because Beam's artwork is a PNG;
+    // the surface below borrows this image's bits, so it has to outlive the surface.
+    QImage iconImage = QImage(":/res/beam.png")
+                          .convertToFormat(QImage::Format_RGBA8888)
+                          .scaled(ICON_SIZE, ICON_SIZE, Qt::IgnoreAspectRatio,
+                                  Qt::SmoothTransformation);
+    SDL_Surface* iconSurface = SDL_CreateRGBSurfaceWithFormatFrom((void*)iconImage.constBits(),
+                                                                  iconImage.width(),
+                                                                  iconImage.height(),
                                                                   32,
-                                                                  4 * svgImage.width(),
+                                                                  4 * iconImage.width(),
                                                                   SDL_PIXELFORMAT_RGBA32);
 #ifndef Q_OS_DARWIN
     // Other platforms seem to preserve our Qt icon when creating a new window.
@@ -2084,6 +2088,24 @@ void Session::exec()
     if (m_IsFullScreen) {
         SDL_SetWindowFullscreen(m_Window, m_FullScreenFlag);
     }
+
+    // BEAM: and back out of sight until there is a picture.
+    //
+    // Creating it with SDL_WINDOW_HIDDEN was not enough on its own: going full screen puts it
+    // on screen on Windows, which is how the empty black rectangle survived the first attempt
+    // at this. Hiding it again here costs nothing -- the full-screen state is already applied,
+    // and the two calls are microseconds apart rather than the few hundred milliseconds it
+    // takes the first frame to arrive.
+    //
+    // The event loop shows it on the first rendered frame. The embedded path shows it itself,
+    // once it has been reparented, so it is left alone.
+#ifdef Q_OS_WIN32
+    if (m_EmbedParent == 0) {
+        SDL_HideWindow(m_Window);
+    }
+#else
+    SDL_HideWindow(m_Window);
+#endif
 
     bool needsFirstEnterCapture = false;
     bool needsPostDecoderCreationCapture = false;

@@ -101,7 +101,10 @@ them from learning. It is now `res/beam.png`.
 And that was still not the stream window, which is the one a user actually reaches. That window
 belongs to **SDL**, not Qt, and `session.cpp` renders an icon from `:/res/moonlight.svg` and applies it
 with `SDL_SetWindowIcon` a few lines after creating it -- overriding the application icon entirely.
-Setting it in `main.cpp` looked like the fix and changed nothing visible. Both are Beam’s now.
+Setting it in `main.cpp` looked like the fix and changed nothing visible. Both are Beam’s now, and
+`res/moonlight.svg` is no longer compiled into the binary at all — nothing read it once the window
+stopped. The file stays on disk, because `app.pro` still installs it on Linux and
+`scripts/generate-ico.sh` still rasterises it; neither is a path Beam ships.
 
 **The `main.cpp` names are the important part, and not for branding.** They decide where `QSettings`
 stores everything: today `HKCU\Software\Moonlight Game Streaming Project\Moonlight`, shared with any

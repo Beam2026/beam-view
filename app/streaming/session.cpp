@@ -39,7 +39,8 @@
 #include <QtEndian>
 #include <QCoreApplication>
 #include <QThreadPool>
-// BEAM: QSvgRenderer and QPainter went with the Moonlight icon this window used to render.
+// BEAM: QImage replaces QSvgRenderer and QPainter, which were here only to rasterise the
+// Moonlight icon this window used to wear.
 #include <QImage>
 #include <QGuiApplication>
 #include <QCursor>

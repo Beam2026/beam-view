@@ -183,7 +183,13 @@ is both confusing and the one thing this whole exercise is meant to prevent.
 
 1. Build a full deployable tree — `scripts\build-arch.bat Release x64`.
 2. Copy `build\deploy-x64-release\` over Beam's bundled engine at
-   `desktop\src-tauri\resources\engines\moonlight\`, or point `engines.rs` at your build.
+   `desktop\src-tauri\resources\engines\beam-view\`, or point `engines.rs` at your build.
+
+   **That path, and not the one Beam actually runs from.** `tauri.conf.json` declares
+   `"resources": ["resources/engines/**/*"]`, so every build copies that tree over
+   `src-tauri/target/debug/resources/engines/`. Deploying into the target directory appears to
+   work and is undone by the next rebuild -- which is worse than not working, because the session
+   after that silently runs the old engine and the results look like the change did nothing.
 3. Run Beam on two machines and connect. Loopback on one machine will not work: the client agent
    binds the same ports Sunshine listens on.
 

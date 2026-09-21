@@ -6,7 +6,6 @@
 #include <Limelight.h>
 #include "SDL_compat.h"
 #include "utils.h"
-#include "beamstatus.h"
 
 #ifdef Q_OS_WIN32
 // BEAM: for reparenting the stream window under --embed-hwnd
@@ -1912,17 +1911,6 @@ void Session::exec()
     // We always want a resizable window with High DPI enabled
     Uint32 defaultWindowFlags = SDL_WINDOW_ALLOW_HIGHDPI | SDL_WINDOW_RESIZABLE;
 
-    // BEAM: hidden until there is a picture in it.
-    //
-    // The window is created several hundred milliseconds before the first frame arrives -- the
-    // renderer has to exist before anything can be decoded into it -- and for that gap it was an
-    // empty black full-screen window sitting on top of Beam. Beam cannot hide this by waiting,
-    // because it only learns there is a picture from `beam: first-frame`, which is emitted *after*
-    // the frame this window was already showing nothing in front of.
-    //
-    // The embedded path below has always created it hidden for the same reason, and proves that
-    // rendering into a window nobody can see works. The event loop shows it on the first frame.
-    defaultWindowFlags |= SDL_WINDOW_HIDDEN;
 
 #ifdef Q_OS_WIN32
     if (m_EmbedParent != 0) {
@@ -2089,23 +2077,6 @@ void Session::exec()
         SDL_SetWindowFullscreen(m_Window, m_FullScreenFlag);
     }
 
-    // BEAM: and back out of sight until there is a picture.
-    //
-    // Creating it with SDL_WINDOW_HIDDEN was not enough on its own: going full screen puts it
-    // on screen on Windows, which is how the empty black rectangle survived the first attempt
-    // at this. Hiding it again here costs nothing -- the full-screen state is already applied,
-    // and the two calls are microseconds apart rather than the few hundred milliseconds it
-    // takes the first frame to arrive.
-    //
-    // The event loop shows it on the first rendered frame. The embedded path shows it itself,
-    // once it has been reparented, so it is left alone.
-#ifdef Q_OS_WIN32
-    if (m_EmbedParent == 0) {
-        SDL_HideWindow(m_Window);
-    }
-#else
-    SDL_HideWindow(m_Window);
-#endif
 
     bool needsFirstEnterCapture = false;
     bool needsPostDecoderCreationCapture = false;
@@ -2162,17 +2133,7 @@ void Session::exec()
     // Hijack this thread to be the SDL main thread. We have to do this
     // because we want to suspend all Qt processing until the stream is over.
     SDL_Event event;
-    bool windowShown = false;
     for (;;) {
-        // BEAM: the window was created hidden; reveal it the moment it has a frame in it. Checked
-        // here rather than from `firstFrame()` because that runs on the render thread, and SDL
-        // window calls belong to the thread that pumps its events -- this one.
-        if (!windowShown && m_EmbedParent == 0 && BeamStatus::hasRenderedFrame()) {
-            SDL_ShowWindow(m_Window);
-            SDL_RaiseWindow(m_Window);
-            windowShown = true;
-        }
-
 #ifdef Q_OS_WIN32
         // In embedded mode our size follows the parent's client area
         if (m_EmbedParent != 0) {

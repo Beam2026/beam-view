@@ -214,33 +214,29 @@ Beam and has never heard of this program.
 
 ---
 
-### Hidden until there is a picture, 2026-09-21
+### The window cannot be hidden until the first frame, 2026-09-21
 
-The window is created several hundred milliseconds before the first frame arrives — the renderer
-has to exist before anything can be decoded into it — and for that gap it was an empty black
-full-screen window on top of Beam. Measured from a real session: the renderer was created at
-5.992 s and `beam: first-frame` came at 6.251 s.
+Tried and reverted the same evening, and worth recording so nobody tries it twice.
 
-Beam cannot fix this from outside. It only learns there is a picture from `beam: first-frame`,
-which is emitted *after* the frame that this window had already been showing nothing in front of.
+The stream window is created several hundred milliseconds before the first frame arrives — the
+renderer has to exist before anything can be decoded into it — and for that gap it is an empty
+black full-screen window on top of the embedder. Measured on a real session: the renderer was
+created at 5.992 s and `beam: first-frame` came at 6.251 s.
 
-So the window is now created with `SDL_WINDOW_HIDDEN` in the ordinary case too, and the SDL event
-loop shows it once `BeamStatus::hasRenderedFrame()` is true. The embedded path has always created
-it hidden for the same reason, which is what proves that rendering into a window nobody can see
-works.
+The obvious fix is to create it with `SDL_WINDOW_HIDDEN` and show it on the first rendered frame.
+It does not work: **nothing renders into a window that was never shown**, so the first frame never
+arrives, the window is never shown, and the session waits on itself forever. Beam sat on "Waiting
+for their screen…" with a live `beam-view.exe` and no window at all.
 
-Shown from the event loop rather than from `firstFrame()`, because that runs on the render thread
-and SDL window calls belong to the thread that pumps its events.
+Two smaller traps on the way there, in case a later attempt gets further:
 
-**The creation flag alone did not do it.** Going full screen puts the window on screen on Windows,
-so `SDL_SetWindowFullscreen` undid the hiding a few lines later and the black rectangle survived the
-first attempt at this. It is hidden again immediately after that call: the full-screen state is
-already applied by then, and the two calls are microseconds apart rather than the few hundred
-milliseconds the first frame takes.
+- The creation flag alone is undone by `SDL_SetWindowFullscreen`, which puts the window on screen
+  on Windows.
+- The embedded path *does* create it hidden and show it later, which is what made this look
+  safe. It gets away with it because it shows the window during setup, long before any frame.
 
-A consequence worth knowing: if no frame ever arrives, this window never appears at all. That is
-the better failure — Beam stays on screen and says what went wrong in its own words, instead of a
-black rectangle covering it.
+So the gap belongs to whoever is *behind* this window, not to this program: the embedder should
+stay in front until it sees `beam: first-frame`, which it already receives.
 
 ---
 

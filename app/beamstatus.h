@@ -27,12 +27,8 @@ enum ErrorCode {
 void connecting();
 
 // Emitted at most once per process, from the first successfully rendered
-// video frame. This is Beam's trigger to reveal its own window.
+// video frame. This is Beam's trigger to hide its own window.
 void firstFrame();
-
-// Whether firstFrame() has been reached. Read from the SDL event loop, which
-// keeps the stream window hidden until there is something in it to see.
-bool hasRenderedFrame();
 
 void error(ErrorCode code, const QString& text);
 

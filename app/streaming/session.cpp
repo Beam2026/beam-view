@@ -1912,7 +1912,6 @@ void Session::exec()
     // We always want a resizable window with High DPI enabled
     Uint32 defaultWindowFlags = SDL_WINDOW_ALLOW_HIGHDPI | SDL_WINDOW_RESIZABLE;
 
-
 #ifdef Q_OS_WIN32
     if (m_EmbedParent != 0) {
         // Created hidden so it can be restyled and reparented into the
@@ -2077,7 +2076,6 @@ void Session::exec()
     if (m_IsFullScreen) {
         SDL_SetWindowFullscreen(m_Window, m_FullScreenFlag);
     }
-
 
     bool needsFirstEnterCapture = false;
     bool needsPostDecoderCreationCapture = false;

@@ -104,7 +104,16 @@ with `SDL_SetWindowIcon` a few lines after creating it -- overriding the applica
 Setting it in `main.cpp` looked like the fix and changed nothing visible. Both are Beam’s now, and
 `res/moonlight.svg` is no longer compiled into the binary at all — nothing read it once the window
 stopped. The file stays on disk, because `app.pro` still installs it on Linux and
-`scripts/generate-ico.sh` still rasterises it; neither is a path Beam ships.
+`scripts/generate-ico.sh` still rasterises it for upstream’s WiX bundle; neither is a path Beam
+ships, and leaving both working is one less thing for a rebase to fight over.
+
+**Neither Beam icon is generated here.** Both are byte-identical copies from the Beam repo, which
+owns the artwork: `app/beam.ico` from `desktop/src-tauri/icons/icon.ico`, `app/res/beam.png` from
+`desktop/src-tauri/icons/128x128.png`. Refresh them by copying. Do **not** rasterise `beam.ico` out
+of `res/beam.png` — that PNG is 128×128 and the committed `.ico` carries a 256×256 entry, so
+“regenerating” it would quietly downgrade the icon Windows shows at the largest size.
+`generate-ico.sh` says all of this in its header now; it used to say nothing and produce
+`moonlight.ico`, which nothing in Beam reads.
 
 **The `main.cpp` names are the important part, and not for branding.** They decide where `QSettings`
 stores everything: today `HKCU\Software\Moonlight Game Streaming Project\Moonlight`, shared with any

@@ -227,7 +227,10 @@ NvPairingManager::pair(QString appVersion, QString pin, QSslCertificate& serverC
     QByteArray salt = generateRandomBytes(16);
     QByteArray saltedPin = saltPin(salt, pin);
 
-    QByteArray aesKey = QCryptographicHash::hash(saltedPin, hashAlgo).constData();
+    // BEAM: take the hash as bytes, not via .constData(). That re-read it as a C string, which
+    // stops at the first zero byte, so ~6% of salts produced a short, wrong key and Sunshine
+    // (which copies all 16 bytes) disagreed: "Incorrect PIN" with the right PIN. docs/patches.md P6.
+    QByteArray aesKey = QCryptographicHash::hash(saltedPin, hashAlgo);
     aesKey.truncate(16);
 
     QString getCert = m_Http.openConnectionToString(m_Http.m_BaseUrlHttp,

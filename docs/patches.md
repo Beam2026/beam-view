@@ -1,6 +1,6 @@
 # The patch set
 
-Five changes, deliberately separate. Rebasing onto upstream is the permanent cost of this fork and
+Six changes, deliberately separate. Rebasing onto upstream is the permanent cost of this fork and
 it scales with how tangled the patches are — so one concern per commit, and resist the urge to
 "tidy while I'm in here". Unrelated cleanup makes future rebases hurt for no benefit.
 
@@ -13,6 +13,7 @@ The base is a pinned upstream commit on the `beam` branch. Status (August 2026):
 | P3 — No UI of its own | **Implemented** — status helper in `app/beamstatus.{h,cpp}`, headless runners in `app/cli/headless.{h,cpp}` |
 | P4 — Headless `pair`/`quit` | **Implemented** — including idempotent re-pair |
 | P5 — Baked-in defaults | Not implemented, deliberately (lowest value; the CLI is manageable) |
+| P6 — Pairing key fix | **Implemented** (2026-09-28) — one line in `app/backend/nvpairingmanager.cpp`; a bug fix upstream shares, not a feature |
 
 ---
 
@@ -37,6 +38,7 @@ line count is a fair proxy for how much it will hurt:
 | `app/main.cpp` | 39 | Settings identity, routing to the headless runners |
 | `app/cli/commandlineparser.cpp` | 23 | `--embed-hwnd` parsing |
 | `app/cli/pair.cpp` | 22 | Idempotent re-pair |
+| `app/backend/nvpairingmanager.cpp` | 4 | P6: pairing key taken as bytes, not a C string |
 | `app/app.pro` | 19 | Target name, new sources |
 | `app/streaming/session.h` | 12 | Embed members |
 | `pacer/pacer.cpp` | **5** | One call to `BeamStatus::firstFrame()` |
@@ -269,6 +271,41 @@ Bake in what Beam always passes — borderless, absolute mouse, quit-after, code
 the invocation stays short and behaviour cannot drift with a stray config file.
 
 Lowest value of the five. Do it last, or skip it if the CLI stays manageable.
+
+---
+
+## P6 — The pairing key stopped at a zero byte, 2026-09-28
+
+**Symptom.** About one Beam session in sixteen stuck on pairing. The guest's beam-view reported
+`Incorrect PIN`, although both machines' logs showed the same PIN, and Sunshine's debug log showed
+the host doing everything right: the PIN arrived after the request, and Sunshine answered
+`getservercert`, `clientchallenge` and `serverchallengeresp` in order. The guest then sent
+`/unpair` 32 ms later and never sent `clientpairingsecret`.
+
+**Cause.** `NvPairingManager::pair` built the AES key as
+
+```cpp
+QByteArray aesKey = QCryptographicHash::hash(saltedPin, hashAlgo).constData();
+```
+
+`.constData()` hands back a `const char *`, and constructing a `QByteArray` from that reads it as a
+C string: it stops at the first zero byte. Whenever `hash(salt + PIN)` has a `0x00` in its first 16
+bytes, the key comes out short. AES then reads past it into whatever follows, so the key is wrong,
+and the challenge response cannot match Sunshine's, which copies all 16 bytes
+(`crypto::gen_aes_key` in Sunshine's `crypto.cpp`). The failure is decided by the random salt, so it
+is intermittent: 1 − (255/256)¹⁶ ≈ 6.1% of attempts.
+
+**Proof.** The failed attempt's salt (`134e89f6…`) with PIN 7367 hashes to `4010d32dce476100…`, a
+zero at byte 7. The retry's salt hashes with no zero in the first 16 bytes.
+
+**Fix.** Keep the hash as the `QByteArray` it already is, then truncate. One line, tagged
+`// BEAM:`.
+
+**Why nobody saw it upstream.** Upstream has the same line (on `master` at the pinned base).
+Moonlight pairs once per device and a failed pair asks for a retry, which succeeds with a fresh
+salt ~94% of the time. Beam pairs every session, which turned a rare nuisance into a regular one.
+Worth reporting to moonlight-stream/moonlight-qt; if upstream fixes it, this patch disappears on the
+next rebase.
 
 ---
 

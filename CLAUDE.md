@@ -8,10 +8,11 @@ Guidance for Claude Code (claude.ai/code) working in this repository.
 ## What this is
 
 `beam-view` is Beam's fork of [moonlight-qt](https://github.com/moonlight-stream/moonlight-qt) —
-the client that decodes a Sunshine stream and renders it. Beam runs it as a **child process** and
-shows its window *inside* Beam's own window, so the user never sees a second application.
+the client that decodes a Sunshine stream and renders it. Beam runs it as a **child process**: it
+opens its own borderless full-screen window for the stream, and Beam hides its own window once the
+first frame is up, so the user only ever sees one application at a time.
 
-Beam itself lives in a separate, private repo (`Beam`, github.com/Beam2026/BEAM), normally checked
+Beam itself lives in a separate repo (`Beam`, github.com/Beam2026/BEAM, GPL-3), normally checked
 out beside this one. It talks to this
 program only over a command line. **That process boundary is load-bearing** — see Licence below.
 
@@ -54,7 +55,7 @@ prefer.
 
 **Keep patches small, separate, and single-purpose.** Rebasing onto upstream is the permanent cost
 of this fork, and it scales with how tangled the changes are. One concern per commit. If the patch
-set grows much past the five in [`docs/patches.md`](docs/patches.md), that is the signal that
+set grows much past the six in [`docs/patches.md`](docs/patches.md), that is the signal that
 owning the whole pipeline — capture, encode, decode, render, no GPL at all — has become cheaper
 than maintaining a fork.
 

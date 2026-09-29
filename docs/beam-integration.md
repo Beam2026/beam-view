@@ -29,18 +29,25 @@ repeatable, and safe to run against an already-paired host.
 ## What Beam invokes
 
 ```powershell
-beam-view.exe pair   127.0.0.1 --pin 1234
-beam-view.exe stream 127.0.0.1 "Desktop" --display-mode borderless --resolution 1920x1080 --absolute-mouse --capture-system-keys always --audio-on-host --quit-after
-beam-view.exe quit   127.0.0.1
+beam-view.exe pair   127.0.0.1:48989 --pin 1234
+beam-view.exe stream 127.0.0.1:48989 "Desktop" --display-mode borderless --resolution 1920x1080 --capture-system-keys always --audio-on-host --quit-after --absolute-mouse --fps 60 [--bitrate 50000]
+beam-view.exe quit   127.0.0.1:48989
 ```
 
 **Which of these take a value, and which do not, is not cosmetic.** `--display-mode`,
-`--resolution` and `--capture-system-keys` are value or choice options. `--absolute-mouse`,
+`--resolution`, `--capture-system-keys`, `--fps` and `--bitrate` are value or choice options. `--absolute-mouse`,
 `--audio-on-host` and `--quit-after` are *toggles*: the parser registers each as a bare `--name`
 alongside a `--no-name` and reads them by presence. Beam used to write `--absolute-mouse enable`,
 and `enable` was not a value but a stray **positional** -- landing after `stream`, the host and the
 app name, where `StreamCommandLineParser` reads indices 0-2 and silently discards the rest. It
 worked only because it was thrown away. Corrected 2026-09-19.
+
+**Mouse mode, frame rate and bitrate are the user's settings** (Beam increment 2.1, slice 1).
+Mouse mode is `--absolute-mouse` (Desktop) or `--no-absolute-mouse` (Game), and is always passed
+in one form or the other. `--fps` is always passed. `--bitrate` (in Kbps) is passed only when the
+user picked one; Auto omits it, and this program computes a bitrate from `--resolution` and
+`--fps`. **Every flag Beam cares about is passed explicitly**, because any flag it leaves out is
+read from this program's registry settings on that machine, which nobody chose.
 
 `--display-mode borderless` is full-screen-desktop: the stream owns the screen for the session, and
 Beam hides its own window rather than hosting the picture inside it. `--resolution` is the
@@ -63,9 +70,13 @@ reading before anyone reaches for it again.
 
 Pairing is automatic and invisible: Beam generates the PIN, sends it to the host over its own
 signalling channel, and the host's copy of Beam approves it against Sunshine. Nobody types a PIN.
+Each `pair` is **one attempt**. Beam retries up to three times itself, with a fresh PIN each time,
+because the host only answers a PIN it has been sent. A failed attempt leaves a half-finished
+pairing in Sunshine, which the host clears before the next one (see Beam's `CLAUDE.md`).
 
-Ports carried by the tunnel — TCP 47984 (HTTPS/pairing), 47989 (HTTP), 48010 (RTSP); UDP 47998
-(video), 47999 (control), 48000 (audio).
+Ports carried by the tunnel — TCP 48984 (HTTPS/pairing), 48989 (HTTP), 49010 (RTSP); UDP 48998
+(video), 48999 (control), 49000 (audio). Beam's Sunshine runs on its own port base, 48989, rather
+than GameStream's 47989, so the address Beam passes is `127.0.0.1:48989`.
 
 ## The contract as implemented
 

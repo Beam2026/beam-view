@@ -551,7 +551,11 @@ win32 {
     # the most visible piece of branding in the whole product.
     RC_ICONS = beam.ico
     QMAKE_TARGET_COMPANY = Beam
-    QMAKE_TARGET_DESCRIPTION = Beam streaming engine (modified Moonlight)
+    # The description is the name Task Manager shows for the process, so it is the plain name of the
+    # thing the user is looking at. The modification notice GPL-3 asks for lives in the copyright
+    # field and in docs/patches.md, where it is still prominent and does not read as a second app.
+    QMAKE_TARGET_DESCRIPTION = Beam stream
+    QMAKE_TARGET_COPYRIGHT = Beam. A modified version of Moonlight, GPL-3.0.
     QMAKE_TARGET_PRODUCT = beam-view
 
     CONFIG -= embed_manifest_exe

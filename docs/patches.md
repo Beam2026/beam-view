@@ -89,7 +89,9 @@ against upstream's before looking at any of our code.
 Make it Beam's program rather than a renamed Moonlight.
 
 - `app/app.pro` — `TARGET`, `QMAKE_TARGET_COMPANY`, `QMAKE_TARGET_DESCRIPTION`,
-  `QMAKE_TARGET_PRODUCT`, and `RC_ICONS = beam.ico` for the executable.
+  `QMAKE_TARGET_COPYRIGHT`, `QMAKE_TARGET_PRODUCT`, and `RC_ICONS = beam.ico` for the executable.
+  The description is what Task Manager lists the process as, so it is just **"Beam stream"**; the
+  "modified Moonlight" notice moved to the copyright field (2026-10-01).
 - `app/main.cpp` — `setOrganizationName`, `setOrganizationDomain`, `setApplicationName`, and
   `setWindowIcon`.
 - `app/streaming/session.cpp` — the window title, now `<computer> - Beam`.
@@ -111,7 +113,8 @@ ships, and leaving both working is one less thing for a rebase to fight over.
 
 **Neither Beam icon is generated here.** Both are byte-identical copies from the Beam repo, which
 owns the artwork: `app/beam.ico` from `desktop/src-tauri/icons/icon.ico`, `app/res/beam.png` from
-`desktop/src-tauri/icons/128x128.png`. Refresh them by copying. Do **not** rasterise `beam.ico` out
+`desktop/src-tauri/icons/128x128.png`. Refresh them by copying — last done 2026-10-01, for the
+seven-band prism. Do **not** rasterise `beam.ico` out
 of `res/beam.png` — that PNG is 128×128 and the committed `.ico` carries a 256×256 entry, so
 “regenerating” it would quietly downgrade the icon Windows shows at the largest size.
 `generate-ico.sh` says all of this in its header now; it used to say nothing and produce

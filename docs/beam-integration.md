@@ -50,9 +50,12 @@ user picked one; Auto omits it, and this program computes a bitrate from `--reso
 read from this program's registry settings on that machine, which nobody chose.
 
 `--display-mode borderless` is full-screen-desktop: the stream owns the screen for the session, and
-Beam hides its own window rather than hosting the picture inside it. `--resolution` is the
-**client's** own screen size, since that is what the picture fills; the host's Sunshine is
-configured to resize its capture to match. `--capture-system-keys always` is required, not optional:
+Beam hides its own window rather than hosting the picture inside it. `--resolution` and `--fps`
+are what the guest asked for — its own screen by default, or an exact size and rate it chose —
+**fitted to what the host can give** (Beam increment 2.1, `resolution.rs`). The host's ceiling is
+its current screen, or its monitor's best mode if it lets guests change its display; only in the
+second case does the host's Sunshine switch its display mode to match. This program scales the
+result to fill the borderless window. `--capture-system-keys always` is required, not optional:
 without it the Windows key opens the *client's* Start menu and takes the keyboard with it, and
 `fullscreen` mode will not do, because it is gated on `SDL_WINDOW_FULLSCREEN`.
 

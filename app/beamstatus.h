@@ -26,9 +26,24 @@ enum ErrorCode {
 
 void connecting();
 
-// Emitted at most once per process, from the first successfully rendered
-// video frame. This is Beam's trigger to hide its own window.
-void firstFrame();
+// "first-frame" is emitted at most once per process, when the first video
+// frame is *on screen* -- Beam's trigger to hide its own window, so it must
+// not fire while this program's window is still invisible.
+//
+// The pacer calls frameRendered() for every rendered frame. Normally the first
+// one emits the line. If the session has cloaked its window
+// (holdFirstFrameUntilRevealed), the reveal takes two steps:
+//
+//   Reveal  first frame: the session uncloaks the window at the *bottom* of the
+//           z-order, where DWM composes it out of sight, and calls revealed()
+//   Raise   after kComposeTime and kComposeFrames: the session raises it, with
+//           real frames already in it, and calls raised() -- which emits the line
+enum class FrameAction { None, Reveal, Raise };
+
+void holdFirstFrameUntilRevealed();
+FrameAction frameRendered();
+void revealed();
+void raised();
 
 void error(ErrorCode code, const QString& text);
 

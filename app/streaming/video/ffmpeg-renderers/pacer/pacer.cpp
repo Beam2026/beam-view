@@ -344,8 +344,17 @@ void Pacer::renderFrame(AVFrame* frame)
     m_VideoStats->renderedFrames++;
 
     // BEAM: Every rendered frame funnels through here, so this is where "the
-    // picture is real" is decided. Emits only once per process.
-    BeamStatus::firstFrame();
+    // picture is on screen" is decided -- see BeamStatus::frameRendered. If the
+    // window is still cloaked, ask the session to reveal it; SDL_PushEvent is
+    // safe from any thread.
+    BeamStatus::FrameAction action = BeamStatus::frameRendered();
+    if (action != BeamStatus::FrameAction::None) {
+        SDL_Event event = {};
+        event.type = SDL_USEREVENT;
+        event.user.code = action == BeamStatus::FrameAction::Reveal ? SDL_CODE_BEAM_REVEAL_WINDOW
+                                                                     : SDL_CODE_BEAM_RAISE_WINDOW;
+        SDL_PushEvent(&event);
+    }
 
     // Wait until after next frame to free this one to ensure the GPU
     // doesn't stall or read garbage if the backing buffer gets returned

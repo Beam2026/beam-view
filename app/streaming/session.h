@@ -180,6 +180,12 @@ private:
 
     void updateOptimalWindowDisplayMode();
 
+    // BEAM: keep the stream window off screen until it has a picture in it.
+    // See the definitions in session.cpp.
+    void cloakUntilFirstFrame();
+    void revealWindow();
+    void raiseWindow();
+
     enum class DecoderAvailability {
         None,
         Software,
@@ -269,6 +275,8 @@ private:
     QQuickWindow* m_QtWindow;
     quintptr m_EmbedParent;
     quintptr m_EmbedWindowHandle;
+    bool m_Cloaked;
+    bool m_AwaitingRaise;
     Uint32 m_LastEmbedSizeCheckTime;
     bool m_UnexpectedTermination;
     SdlInputHandler* m_InputHandler;

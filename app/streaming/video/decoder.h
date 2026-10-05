@@ -6,6 +6,11 @@
 
 #define SDL_CODE_FRAME_READY 0
 
+// BEAM: posted by the pacer to reveal the stream window in two steps -- see
+// BeamStatus::frameRendered and Session::cloakUntilFirstFrame.
+#define SDL_CODE_BEAM_REVEAL_WINDOW 200
+#define SDL_CODE_BEAM_RAISE_WINDOW 201
+
 #define MAX_SLICES 4
 
 typedef struct _VIDEO_STATS {

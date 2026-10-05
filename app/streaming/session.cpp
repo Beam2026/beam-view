@@ -1,4 +1,5 @@
 #include "session.h"
+#include "beamstatus.h"
 #include "settings/streamingpreferences.h"
 #include "streaming/streamutils.h"
 #include "backend/richpresencemanager.h"
@@ -8,8 +9,10 @@
 #include "utils.h"
 
 #ifdef Q_OS_WIN32
-// BEAM: for reparenting the stream window under --embed-hwnd
+// BEAM: for reparenting the stream window under --embed-hwnd, and for
+// cloaking it until its first frame
 #include <SDL_syswm.h>
+#include <dwmapi.h>
 #endif
 
 #ifdef HAVE_FFMPEG
@@ -581,6 +584,8 @@ Session::Session(NvComputer* computer, NvApp& app, StreamingPreferences *prefere
       m_QtWindow(nullptr),
       m_EmbedParent(0),
       m_EmbedWindowHandle(0),
+      m_Cloaked(false),
+      m_AwaitingRaise(false),
       m_LastEmbedSizeCheckTime(0),
       m_UnexpectedTermination(true), // Failure prior to streaming is unexpected
       m_InputHandler(nullptr),
@@ -1406,6 +1411,113 @@ void Session::getWindowDimensions(int& x, int& y,
     x = y = SDL_WINDOWPOS_CENTERED_DISPLAY(displayIndex);
 }
 
+// BEAM: the stream window is kept off screen until it has a picture in it.
+//
+// It exists for a few hundred milliseconds before it has anything to show --
+// the renderer is built from the window and the decoder from the renderer --
+// and for that gap it was an empty black rectangle over the whole screen.
+// Beam used to hide it by pinning its own window full-screen on top, which
+// stops working the moment the user is in another app.
+//
+// Hiding it does not work: nothing renders into a window that was never
+// shown, so the first frame never came (docs/patches.md, 2026-09-21). So:
+//
+//  1. cloakUntilFirstFrame: created hidden, cloaked with DWM, then shown. The
+//     window is shown as far as SDL and the renderer are concerned, so frames
+//     render; DWM just keeps it off the screen.
+//  2. revealWindow, on the first rendered frame: moved to the *bottom* of the
+//     z-order and uncloaked. A newly uncloaked window presents black until DWM
+//     has composed real frames into it -- 20 ms was measurably not enough --
+//     so it does that here, behind every other window, where nobody sees it.
+//  3. raiseWindow, once it has composed for a while (BeamStatus decides when,
+//     with a timer below as the fallback): brought to the front with a
+//     picture already in it, and only then is "first-frame" sent to Beam.
+//
+// Failure is harmless: if the cloak cannot be set, the window is shown as it
+// always was. If SDL ever recreates the window (only the SDL renderer path
+// can), the new one is simply not cloaked.
+void Session::cloakUntilFirstFrame()
+{
+#ifdef Q_OS_WIN32
+    SDL_SysWMinfo wmInfo;
+    SDL_VERSION(&wmInfo.version);
+    if (SDL_GetWindowWMInfo(m_Window, &wmInfo) && wmInfo.subsystem == SDL_SYSWM_WINDOWS) {
+        BOOL cloak = TRUE;
+        HRESULT hr = DwmSetWindowAttribute(wmInfo.info.win.window, DWMWA_CLOAK, &cloak, sizeof(cloak));
+        m_Cloaked = SUCCEEDED(hr);
+        if (m_Cloaked) {
+            // Beam hides its own window on "first-frame", so that line must
+            // wait until this window is actually on screen.
+            BeamStatus::holdFirstFrameUntilRevealed();
+        }
+        else {
+            SDL_LogWarn(SDL_LOG_CATEGORY_APPLICATION,
+                        "Could not cloak the stream window (%x); it shows before the first frame",
+                        (unsigned)hr);
+        }
+    }
+    SDL_ShowWindow(m_Window);
+#endif
+}
+
+// The raise must happen even if frames stop arriving while the window composes
+// out of sight, or the stream would sit behind everything for good.
+static Uint32 raiseFallback(Uint32, void*)
+{
+    SDL_Event event = {};
+    event.type = SDL_USEREVENT;
+    event.user.code = SDL_CODE_BEAM_RAISE_WINDOW;
+    SDL_PushEvent(&event);
+    return 0;
+}
+
+void Session::revealWindow()
+{
+#ifdef Q_OS_WIN32
+    if (!m_Cloaked || m_Window == nullptr) {
+        return;
+    }
+    m_Cloaked = false;
+    m_AwaitingRaise = true;
+
+    SDL_SysWMinfo wmInfo;
+    SDL_VERSION(&wmInfo.version);
+    if (SDL_GetWindowWMInfo(m_Window, &wmInfo) && wmInfo.subsystem == SDL_SYSWM_WINDOWS) {
+        HWND hwnd = wmInfo.info.win.window;
+        SetWindowPos(hwnd, HWND_BOTTOM, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+        BOOL cloak = FALSE;
+        DwmSetWindowAttribute(hwnd, DWMWA_CLOAK, &cloak, sizeof(cloak));
+    }
+
+    SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Stream window uncloaked behind other windows; composing");
+    BeamStatus::revealed();
+    SDL_AddTimer(1000, raiseFallback, nullptr);
+#endif
+}
+
+void Session::raiseWindow()
+{
+#ifdef Q_OS_WIN32
+    if (!m_AwaitingRaise || m_Window == nullptr) {
+        return;
+    }
+    m_AwaitingRaise = false;
+
+    SDL_SysWMinfo wmInfo;
+    SDL_VERSION(&wmInfo.version);
+    if (SDL_GetWindowWMInfo(m_Window, &wmInfo) && wmInfo.subsystem == SDL_SYSWM_WINDOWS) {
+        SetWindowPos(wmInfo.info.win.window, HWND_TOP, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
+    }
+    // The user asked for this stream, so it comes to the front even if they
+    // switched to another app while it connected.
+    SDL_RaiseWindow(m_Window);
+    SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Stream window raised with its picture");
+
+    // Only now may Beam drop its loading screen.
+    BeamStatus::raised();
+#endif
+}
+
 void Session::updateOptimalWindowDisplayMode()
 {
     SDL_DisplayMode desktopMode, bestMode, mode;
@@ -1919,6 +2031,11 @@ void Session::exec()
         // because a child window has no frame of its own.
         defaultWindowFlags |= SDL_WINDOW_HIDDEN | SDL_WINDOW_BORDERLESS;
     }
+    else {
+        // BEAM: created hidden only so it can be cloaked before it is ever
+        // shown; cloakUntilFirstFrame() shows it straight after.
+        defaultWindowFlags |= SDL_WINDOW_HIDDEN;
+    }
 #endif
 
     // If we're starting in windowed mode and the Moonlight GUI is maximized or
@@ -2039,6 +2156,9 @@ void Session::exec()
             QThreadPool::globalInstance()->start(new DeferredSessionCleanupTask(this));
             return;
         }
+    }
+    else {
+        cloakUntilFirstFrame();
     }
 #endif
 
@@ -2183,6 +2303,12 @@ void Session::exec()
                 if (m_VideoDecoder != nullptr) {
                     m_VideoDecoder->renderFrameOnMainThread();
                 }
+                break;
+            case SDL_CODE_BEAM_REVEAL_WINDOW:
+                revealWindow();
+                break;
+            case SDL_CODE_BEAM_RAISE_WINDOW:
+                raiseWindow();
                 break;
             case SDL_CODE_FLUSH_WINDOW_EVENT_BARRIER:
                 m_FlushingWindowEventsRef--;

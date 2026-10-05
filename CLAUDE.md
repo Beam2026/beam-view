@@ -55,7 +55,7 @@ prefer.
 
 **Keep patches small, separate, and single-purpose.** Rebasing onto upstream is the permanent cost
 of this fork, and it scales with how tangled the changes are. One concern per commit. If the patch
-set grows much past the eight in [`docs/patches.md`](docs/patches.md), that is the signal that
+set grows much past the nine in [`docs/patches.md`](docs/patches.md), that is the signal that
 owning the whole pipeline — capture, encode, decode, render, no GPL at all — has become cheaper
 than maintaining a fork.
 

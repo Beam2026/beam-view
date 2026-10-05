@@ -361,6 +361,20 @@ seen in a Beam session log as `Discord integration ready for user: …`. A priva
 Moonlight's name on screen. Defaulting the `richpresence` setting to false would not have been
 enough: the registry already holds `true` on any machine that has run beam-view.
 
+## P9 — Say the stream is ending the moment the user ends it, 2026-10-05
+
+`app/streaming/session.cpp` (the `SDL_QUIT` case) and `BeamStatus::ending()` in `beamstatus.cpp`.
+
+On the quit combo — anything that raises `SDL_QUIT` — this program prints `beam: ending` and hides
+its window *before* the polite shutdown that follows. That shutdown took 3.4 s on 2026-10-05: 2.2 s
+waiting for the host to acknowledge the control stream's disconnect, 0.8 s on the `--quit-after`
+request, and the rest exiting — all of it with a frozen stream on screen and Beam waiting for this
+process to exit before it could come back. Beam now ends the session on `ending` and kills this
+process, as its own End button always did; the host closes its own side locally either way. Measured
+after: 86 ms from the quit combo to Beam's session end.
+
+---
+
 ## When to stop
 
 If this list grows well past five patches, or a rebase starts taking real work rather than an

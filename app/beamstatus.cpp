@@ -109,6 +109,14 @@ void raised()
     }
 }
 
+void ending()
+{
+    static std::atomic_bool emitted(false);
+    if (!emitted.exchange(true)) {
+        emitLine("ending");
+    }
+}
+
 void error(ErrorCode code, const QString& text)
 {
     emitLine(QString("error %1 %2").arg(code).arg(text));

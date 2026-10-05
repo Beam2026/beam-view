@@ -45,6 +45,11 @@ FrameAction frameRendered();
 void revealed();
 void raised();
 
+// Emitted at most once, the moment the user asks to end the stream, before the
+// seconds of polite shutdown that follow. Beam ends the session on it rather
+// than waiting for this process to exit.
+void ending();
+
 void error(ErrorCode code, const QString& text);
 
 // reason is "clean" or "error"

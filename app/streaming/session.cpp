@@ -2295,6 +2295,15 @@ void Session::exec()
         case SDL_QUIT:
             SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION,
                         "Quit event received");
+            // BEAM: the user is done, so say so now and get off the screen.
+            // What follows -- stopping the streams politely, the --quit-after
+            // request to the host -- took 3.4 s on 2026-10-05, all of it with
+            // a frozen stream on screen and Beam waiting for this process to
+            // exit. Beam ends the session on "ending" and kills us instead.
+            BeamStatus::ending();
+            if (m_Window != nullptr) {
+                SDL_HideWindow(m_Window);
+            }
             goto DispatchDeferredCleanup;
 
         case SDL_USEREVENT:

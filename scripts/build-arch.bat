@@ -247,6 +247,9 @@ rmdir /s /q %DEPLOY_FOLDER%\qml\QtQuick\Controls\FluentWinUI3
 rmdir /s /q %DEPLOY_FOLDER%\qml\QtQuick\NativeStyle
 rem icuuc.dll ships with all supported OSes (and Qt incorrectly deploys the x64 version on ARM64)
 del %DEPLOY_FOLDER%\icuuc.dll
+rem BEAM: Discord integration is not built (app.pro), so its DLL would only be dead weight that
+rem the "copy every prebuilt DLL" step above put there.
+if exist %DEPLOY_FOLDER%\discord-rpc.dll del %DEPLOY_FOLDER%\discord-rpc.dll
 
 if "%SIGN%"=="1" (
     echo Signing deployed binaries

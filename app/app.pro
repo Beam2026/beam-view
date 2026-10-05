@@ -149,9 +149,13 @@ win32 {
     LIBS += -llibssl -llibcrypto -lSDL2 -lSDL2_ttf -lavcodec -lavutil -lswscale -lopus -ldxgi -ld3d11 -llibplacebo
     CONFIG += ffmpeg libplacebo
 }
-win32:!winrt {
-    CONFIG += discord-rpc
-}
+# BEAM: no Discord integration on Windows. Upstream's reports every stream to Discord under
+# Moonlight's own application id, so a Beam guest showed to their friends as "playing Moonlight,
+# Streaming Desktop" -- a privacy leak and Moonlight's name on screen. Without `discord-rpc`,
+# HAVE_DISCORD is undefined and RichPresenceManager compiles to nothing.
+# win32:!winrt {
+#     CONFIG += discord-rpc
+# }
 macx {
     !disable-prebuilts {
         LIBS += -lssl.3 -lcrypto.3 -lavcodec.63 -lavutil.61 -lswscale.10 -lopus.0 -lSDL2 -lSDL2_ttf -lplacebo

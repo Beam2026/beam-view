@@ -2065,8 +2065,10 @@ void Session::exec()
 #ifdef Q_OS_DARWIN
     std::string windowName = QString(m_Computer->name).toStdString();
 #else
-    // BEAM: window title
-    std::string windowName = QString(m_Computer->name + " - Beam").toStdString();
+    // BEAM: window title. Just "Beam" -- the computer name here is the *host's* PC name as Sunshine
+    // reports it (a "DESKTOP-9HVR4QV"), which means nothing to the guest and showed the other
+    // person's machine name on the taskbar.
+    std::string windowName = "Beam";
 #endif
 
     m_Window = SDL_CreateWindow(windowName.c_str(),

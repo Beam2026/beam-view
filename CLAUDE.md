@@ -55,7 +55,7 @@ prefer.
 
 **Keep patches small, separate, and single-purpose.** Rebasing onto upstream is the permanent cost
 of this fork, and it scales with how tangled the changes are. One concern per commit. If the patch
-set grows much past the six in [`docs/patches.md`](docs/patches.md), that is the signal that
+set grows much past the eight in [`docs/patches.md`](docs/patches.md), that is the signal that
 owning the whole pipeline — capture, encode, decode, render, no GPL at all — has become cheaper
 than maintaining a fork.
 
@@ -104,7 +104,7 @@ broke Beam's pairing. Do not change these names back or share them with anything
 ## What Beam expects
 
 The CLI contract Beam depends on is in [`docs/beam-integration.md`](docs/beam-integration.md).
-Changing any of it means changing `desktop/src-tauri/src/engines.rs` in the Beam repo at the same
+Changing any of it means changing `desktop/src-tauri/src/viewer.rs` in the Beam repo at the same
 time — nothing enforces that the two agree.
 
 `pair`, `quit` and `stream` are all headless now: no window, no overlay, no dialogs. Status and

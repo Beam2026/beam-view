@@ -156,7 +156,7 @@ client succeeds and exits 0).
 
 ```text
 beam: connecting             <- emitted when the stream command starts work
-beam: first-frame            <- first video frame actually rendered; reveal now
+beam: first-frame            <- first video frame on screen in this window; hide Beam now
 beam: error <code> <text>    <- Beam renders this in its own words
 beam: ended <reason>         <- reason is "clean" or "error"; process exits after
 ```

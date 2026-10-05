@@ -252,6 +252,9 @@ Two smaller traps on the way there, in case a later attempt gets further:
 - The embedded path *does* create it hidden and show it later, which is what made this look
   safe. It gets away with it because it shows the window during setup, long before any frame.
 
+**Superseded by P7 (2026-10-05)**, which closes the gap here after all — with a DWM cloak rather
+than a hidden window. The reasoning below is what was true before it.
+
 So the gap belongs to whoever is *behind* this window, not to this program: the embedder should
 stay in front until it sees `beam: first-frame`, which it already receives.
 
@@ -311,6 +314,52 @@ Worth reporting to moonlight-stream/moonlight-qt; if upstream fixes it, this pat
 next rebase.
 
 ---
+
+## P7 — The stream window stays off screen until it has a picture, 2026-10-05
+
+`app/streaming/session.cpp` (`cloakUntilFirstFrame`, `revealWindow`, `raiseWindow`), a hook in
+`pacer.cpp`, `SDL_CODE_BEAM_REVEAL_WINDOW` / `SDL_CODE_BEAM_RAISE_WINDOW` in `video/decoder.h`, and
+a small first-frame state in `beamstatus.cpp`.
+
+The empty black window of the gap above is never on screen. On Windows, outside `--embed-hwnd`:
+
+1. **Cloaked.** Created hidden, cloaked with `DwmSetWindowAttribute(DWMWA_CLOAK)`, then shown. A
+   cloaked window is shown as far as SDL and the renderer are concerned, so frames render; DWM keeps
+   it off the screen. (This is not the `SDL_WINDOW_HIDDEN` attempt above: that window was never
+   *shown*, and nothing renders into one.)
+2. **Revealed out of sight.** On the first rendered frame the pacer posts a reveal; the session moves
+   the window to the bottom of the z-order and uncloaks it, so DWM composes it behind every other
+   window.
+3. **Raised with a picture.** After 150 ms and at least two more frames the pacer posts a raise (a
+   1 s timer does too, in case frames stop); the session brings the window to the front, and only
+   then is `beam: first-frame` sent.
+
+**Why three steps, measured on 2026-10-05.** The first version uncloaked on the first frame and
+printed `first-frame` from the render thread *before* the uncloak had happened, so Beam dropped its
+loading screen onto nothing: a black blink. Fixing that order still blinked — 20 ms between uncloak
+and `first-frame` — because a newly uncloaked window presents black until DWM has composed real
+frames into it. Before the cloak the window had ~260 ms behind Beam's cover and never blinked;
+composing at the bottom of the z-order gives it that time where nobody can see it, and also covers
+a user who switched to another app while the stream connected.
+
+`beam: first-frame` therefore means **the picture is on screen**, not merely rendered. Without a
+cloak (it failed, or not Windows) the first rendered frame prints it, as before. If SDL recreates
+the window (only the SDL renderer path can), the new one is not cloaked and the old gap returns for
+that path alone.
+
+---
+
+## P8 — No Discord integration, 2026-10-05
+
+`app/app.pro` no longer adds `discord-rpc` on Windows, so `HAVE_DISCORD` is undefined and
+`RichPresenceManager` compiles to nothing; `scripts/build-arch.bat` drops `discord-rpc.dll`, which
+the copy-every-prebuilt-DLL step would otherwise still ship.
+
+Upstream reports every stream to Discord under **Moonlight's own Discord application**, so a Beam
+guest with Discord open appeared to their friends as *playing Moonlight, "Streaming Desktop"* —
+seen in a Beam session log as `Discord integration ready for user: …`. A privacy leak, and
+Moonlight's name on screen. Defaulting the `richpresence` setting to false would not have been
+enough: the registry already holds `true` on any machine that has run beam-view.
 
 ## When to stop
 

@@ -445,6 +445,15 @@ the stream, a moment later and before the launch request. About 0.2 s of every l
 laptop measured on 2026-10-06. The check now runs on the input handler's own subsystem, right after
 it starts. The warning is the same and still reaches Beam as a `beam: warning`.
 
+## P14 — reverted, 2026-10-07
+
+It made the stream's first frames wait for the first decoder rather than be dropped, and skipped
+that decoder's keyframe request, on the strength of one session where the opening keyframe arrived
+before the decoder existed. Six sessions with it said otherwise: the decoder was ready before the
+first packet anyway, first packet to picture stayed at 0.35 s, and in one session the opening
+keyframe did not arrive whole -- with no request to recover, the picture waited 1.1 s for the next.
+The request is what recovers that, so it stays. The number P14 is not reused.
+
 ---
 
 ## When to stop

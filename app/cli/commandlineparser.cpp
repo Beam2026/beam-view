@@ -260,6 +260,7 @@ void PairCommandLineParser::parse(const QStringList &args)
     parser.addPositionalArgument("pair", "pair host");
     parser.addPositionalArgument("host", "Host computer name, UUID, or IP address", "<host>");
     parser.addValueOption("pin", "4 digit pairing PIN");
+    parser.addValueOption("beam-session", "Beam session this pairing is for (sent to the host as beamid)");
 
     if (!parser.parse(args)) {
         parser.showError(parser.errorText());
@@ -281,6 +282,12 @@ void PairCommandLineParser::parse(const QStringList &args)
     if (!m_PredefinedPin.isEmpty() && m_PredefinedPin.length() != 4) {
         parser.showError("PIN must be 4 digits");
     }
+    // It goes into a URL query unescaped, so it is held to the alphabet beam-share accepts.
+    m_BeamSession = parser.value("beam-session");
+    static const QRegularExpression sessionId("^[A-Za-z0-9_-]{1,64}$");
+    if (!m_BeamSession.isEmpty() && !sessionId.match(m_BeamSession).hasMatch()) {
+        parser.showError("Beam session must be 1-64 letters, digits, '-' or '_'");
+    }
 }
 
 QString PairCommandLineParser::getHost() const
@@ -291,6 +298,11 @@ QString PairCommandLineParser::getHost() const
 QString PairCommandLineParser::getPredefinedPin() const
 {
     return m_PredefinedPin;
+}
+
+QString PairCommandLineParser::getBeamSession() const
+{
+    return m_BeamSession;
 }
 
 StreamCommandLineParser::StreamCommandLineParser()

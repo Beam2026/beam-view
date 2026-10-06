@@ -24,7 +24,18 @@ public:
     PairState
     pair(QString appVersion, QString pin, QSslCertificate& serverCert);
 
+    // Beam (P10): the Beam session this process pairs for, sent as `beamid=` with every pairing
+    // request so the host's Sunshine (beam-share) can match it to the PIN its host approved.
+    static void
+    setBeamSessionId(const QString& id);
+
 private:
+    // The arguments every pairing request starts with.
+    static QString
+    pairArguments();
+
+    static QString s_BeamSessionId;
+
     QByteArray
     generateRandomBytes(int length);
 

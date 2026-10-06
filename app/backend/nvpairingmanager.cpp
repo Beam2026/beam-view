@@ -11,6 +11,24 @@
 
 #define REQUEST_TIMEOUT_MS 5000
 
+QString NvPairingManager::s_BeamSessionId;
+
+void
+NvPairingManager::setBeamSessionId(const QString& id)
+{
+    s_BeamSessionId = id;
+}
+
+QString
+NvPairingManager::pairArguments()
+{
+    QString args = "devicename=roth&updateState=1&";
+    if (!s_BeamSessionId.isEmpty()) {
+        args += "beamid=" + s_BeamSessionId + "&";
+    }
+    return args;
+}
+
 NvPairingManager::NvPairingManager(NvComputer* computer) :
     m_Http(computer)
 {
@@ -235,7 +253,7 @@ NvPairingManager::pair(QString appVersion, QString pin, QSslCertificate& serverC
 
     QString getCert = m_Http.openConnectionToString(m_Http.m_BaseUrlHttp,
                                                     "pair",
-                                                    "devicename=roth&updateState=1&phrase=getservercert&salt=" +
+                                                    pairArguments() + "phrase=getservercert&salt=" +
                                                     salt.toHex() + "&clientcert=" + IdentityManager::get()->getCertificate().toHex(),
                                                     0);
     NvHTTP::verifyResponseStatus(getCert);
@@ -269,7 +287,7 @@ NvPairingManager::pair(QString appVersion, QString pin, QSslCertificate& serverC
     QByteArray encryptedChallenge = encrypt(randomChallenge, aesKey);
     QString challengeXml = m_Http.openConnectionToString(m_Http.m_BaseUrlHttp,
                                                          "pair",
-                                                         "devicename=roth&updateState=1&clientchallenge=" +
+                                                         pairArguments() + "clientchallenge=" +
                                                          encryptedChallenge.toHex(),
                                                          REQUEST_TIMEOUT_MS);
     NvHTTP::verifyResponseStatus(challengeXml);
@@ -300,7 +318,7 @@ NvPairingManager::pair(QString appVersion, QString pin, QSslCertificate& serverC
     QByteArray encryptedChallengeResponseHash = encrypt(paddedHash, aesKey);
     QString respXml = m_Http.openConnectionToString(m_Http.m_BaseUrlHttp,
                                                     "pair",
-                                                    "devicename=roth&updateState=1&serverchallengeresp=" +
+                                                    pairArguments() + "serverchallengeresp=" +
                                                     encryptedChallengeResponseHash.toHex(),
                                                     REQUEST_TIMEOUT_MS);
     NvHTTP::verifyResponseStatus(respXml);
@@ -347,7 +365,7 @@ NvPairingManager::pair(QString appVersion, QString pin, QSslCertificate& serverC
 
     QString secretRespXml = m_Http.openConnectionToString(m_Http.m_BaseUrlHttp,
                                                           "pair",
-                                                          "devicename=roth&updateState=1&clientpairingsecret=" +
+                                                          pairArguments() + "clientpairingsecret=" +
                                                           clientPairingSecret.toHex(),
                                                           REQUEST_TIMEOUT_MS);
     NvHTTP::verifyResponseStatus(secretRespXml);
@@ -360,7 +378,7 @@ NvPairingManager::pair(QString appVersion, QString pin, QSslCertificate& serverC
 
     QString pairChallengeXml = m_Http.openConnectionToString(m_Http.m_BaseUrlHttps,
                                                              "pair",
-                                                             "devicename=roth&updateState=1&phrase=pairchallenge",
+                                                             pairArguments() + "phrase=pairchallenge",
                                                              REQUEST_TIMEOUT_MS);
     NvHTTP::verifyResponseStatus(pairChallengeXml);
     if (NvHTTP::getXmlString(pairChallengeXml, "paired") != "1")

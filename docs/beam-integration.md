@@ -29,7 +29,7 @@ repeatable, and safe to run against an already-paired host.
 ## What Beam invokes
 
 ```powershell
-beam-view.exe pair   127.0.0.1:48989 --pin 1234
+beam-view.exe pair   127.0.0.1:48989 --pin 1234 --beam-session <session id>
 beam-view.exe stream 127.0.0.1:48989 "Desktop" --display-mode borderless --resolution 1920x1080 --capture-system-keys always --audio-on-host --quit-after --absolute-mouse --fps 60 [--bitrate 50000]
 beam-view.exe quit   127.0.0.1:48989
 ```
@@ -74,8 +74,12 @@ reading before anyone reaches for it again.
 Pairing is automatic and invisible: Beam generates the PIN, sends it to the host over its own
 signalling channel, and the host's copy of Beam approves it against Sunshine. Nobody types a PIN.
 Each `pair` is **one attempt**. Beam retries up to three times itself, with a fresh PIN each time,
-because the host only answers a PIN it has been sent. A failed attempt leaves a half-finished
-pairing in Sunshine, which the host clears before the next one (see Beam's `CLAUDE.md`).
+because the host only answers a PIN it has been sent. With `--beam-session`, the next attempt's
+request replaces the failed one in the host's Sunshine (beam-share), so nothing needs clearing.
+
+`--beam-session` (P10) puts `beamid=<id>` on every pairing request, so a host running beam-share
+answers it with the PIN approved for that session and no other. It takes 1-64 letters, digits, `-`
+or `_`, because it goes into the URL unescaped.
 
 Ports carried by the tunnel — TCP 48984 (HTTPS/pairing), 48989 (HTTP), 49010 (RTSP); UDP 48998
 (video), 48999 (control), 49000 (audio). Beam's Sunshine runs on its own port base, 48989, rather

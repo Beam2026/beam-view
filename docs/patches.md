@@ -374,6 +374,23 @@ process to exit before it could come back. Beam now ends the session on `ending`
 process, as its own End button always did; the host closes its own side locally either way. Measured
 after: 86 ms from the quit combo to Beam's session end.
 
+## P10 — Every pairing request names its Beam session, 2026-10-06
+
+`NvPairingManager::pairArguments()` in `app/backend/nvpairingmanager.cpp`, set from `pair
+--beam-session <id>` in `app/main.cpp`.
+
+Moonlight identifies itself to the host with the same `uniqueid` (`0123456789ABCDEF`) and
+`devicename=roth` on every request, so nothing in a pairing request says which session it is for.
+Sunshine's `POST /api/pin` could therefore only hand a PIN to whichever request happened to be
+waiting -- and a request left waiting by a cancelled session took the next session's PIN. Beam
+worked around that from outside for weeks (see Beam's `CLAUDE.md`).
+
+With `--beam-session`, all five pairing requests carry `beamid=<id>`. The host's Sunshine is
+beam-share, Beam's fork, which matches the request to the PIN its host approved for that session
+(`POST /api/beam/pairing`) -- even when the host approved it first, so the request is answered on
+arrival instead of parked. Without the flag nothing changes, and an upstream Sunshine ignores the
+extra argument.
+
 ---
 
 ## When to stop

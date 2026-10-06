@@ -51,6 +51,7 @@
 #include "gui/appmodel.h"
 #include "backend/autoupdatechecker.h"
 #include "backend/computermanager.h"
+#include "backend/nvpairingmanager.h"
 #include "backend/systemproperties.h"
 #include "streaming/session.h"
 #include "settings/streamingpreferences.h"
@@ -1035,6 +1036,7 @@ int main(int argc, char *argv[])
             hasGUI = false;
             PairCommandLineParser pairParser;
             pairParser.parse(app.arguments());
+            NvPairingManager::setBeamSessionId(pairParser.getBeamSession());
             auto launcher = new CliPair::Launcher(pairParser.getHost(), pairParser.getPredefinedPin(), &app);
             auto runner   = new CliHeadless::PairRunner(launcher, &app);
             runner->run(new ComputerManager(StreamingPreferences::get()));

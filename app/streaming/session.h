@@ -269,12 +269,6 @@ private:
     SDL_Window* m_Window;
     IVideoDecoder* m_VideoDecoder;
     SDL_mutex* m_DecoderLock;
-
-    // Beam (P14): set until the stream's first decoder exists, which is created only once the
-    // window is shown -- after video has started. Frames that come first wait for it, signalled by
-    // m_FirstDecoderReady, instead of being dropped with the host's opening keyframe among them.
-    bool m_AwaitingFirstDecoder;
-    SDL_cond* m_FirstDecoderReady;
     bool m_AudioDisabled;
     bool m_AudioMuted;
     Uint32 m_FullScreenFlag;

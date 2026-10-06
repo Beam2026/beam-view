@@ -367,27 +367,6 @@ int Session::drSetup(int videoFormat, int width, int height, int frameRate, void
 
 int Session::drSubmitDecodeUnit(PDECODE_UNIT du)
 {
-    // Beam (P14): the opening frames reach here before the first decoder exists -- it is made when
-    // the stream window is first shown -- and were dropped, the host's first keyframe with them.
-    // The decoder then asked for another and the picture waited a round trip for it, about 0.2 s.
-    // So the first frames wait for the first decoder instead. This is the decode thread, which
-    // reads from a queue of 15 frames, so a short wait loses nothing; past it, frames are dropped
-    // as before and the decoder asks for a keyframe when it finds none.
-    if (s_ActiveSession->m_AwaitingFirstDecoder) {
-        SDL_LockMutex(s_ActiveSession->m_DecoderLock);
-        const Uint32 deadline = SDL_GetTicks() + 200;
-        while (s_ActiveSession->m_AwaitingFirstDecoder && !SDL_TICKS_PASSED(SDL_GetTicks(), deadline)) {
-            SDL_CondWaitTimeout(s_ActiveSession->m_FirstDecoderReady, s_ActiveSession->m_DecoderLock, 20);
-        }
-        // Waited once, and long enough: from here frames are dropped until there is a decoder, and
-        // it asks for a keyframe when it comes.
-        s_ActiveSession->m_AwaitingFirstDecoder = false;
-        IVideoDecoder* decoder = s_ActiveSession->m_VideoDecoder;
-        int ret = decoder != nullptr ? decoder->submitDecodeUnit(du) : DR_OK;
-        SDL_UnlockMutex(s_ActiveSession->m_DecoderLock);
-        return ret;
-    }
-
     // Use a lock since we'll be yanking this decoder out
     // from underneath the session when we initiate destruction.
     // We need to destroy the decoder on the main thread to satisfy
@@ -601,8 +580,6 @@ Session::Session(NvComputer* computer, NvApp& app, StreamingPreferences *prefere
       m_Window(nullptr),
       m_VideoDecoder(nullptr),
       m_DecoderLock(SDL_CreateMutex()),
-      m_AwaitingFirstDecoder(true),
-      m_FirstDecoderReady(SDL_CreateCond()),
       m_AudioMuted(false),
       m_QtWindow(nullptr),
       m_EmbedParent(0),
@@ -629,7 +606,6 @@ Session::~Session()
     // NB: This may not get destroyed for a long time! Don't put any non-trivial cleanup here.
     // Use Session::exec() or DeferredSessionCleanupTask instead.
 
-    SDL_DestroyCond(m_FirstDecoderReady);
     SDL_DestroyMutex(m_DecoderLock);
 }
 
@@ -2583,17 +2559,8 @@ void Session::exec()
                 }
             }
 
-            // Request an IDR frame to complete the reset -- except for the stream's first decoder
-            // (Beam, P14): the frames from the start of the stream waited for it, the host's opening
-            // keyframe first, and a request now would make the stream drop every frame until a
-            // second keyframe came. If they did not wait long enough, the decoder asks itself.
-            if (m_AwaitingFirstDecoder) {
-                m_AwaitingFirstDecoder = false;
-                SDL_CondBroadcast(m_FirstDecoderReady);
-            }
-            else {
-                LiRequestIdrFrame();
-            }
+            // Request an IDR frame to complete the reset
+            LiRequestIdrFrame();
 
             // Set HDR mode. We may miss the callback if we're in the middle
             // of recreating our decoder at the time the HDR transition happens.

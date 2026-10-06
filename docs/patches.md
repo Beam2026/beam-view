@@ -391,6 +391,21 @@ beam-share, Beam's fork, which matches the request to the PIN its host approved 
 arrival instead of parked. Without the flag nothing changes, and an upstream Sunshine ignores the
 extra argument.
 
+## P11 — Every fallback is said, 2026-10-06
+
+`BeamStatus::warning` in `app/beamstatus.cpp`, called from `Session::emitLaunchWarning` and after the
+stream's decoder is chosen in `app/streaming/session.cpp`.
+
+Moonlight decides a fallback in a dozen places -- a codec the host cannot encode, surround the audio
+device cannot play, HDR or 4:4:4 the GPU cannot decode -- and queues a warning for a dialog. Headless
+there is no dialog, so each fallback happened with no word to anyone: an HEVC request streamed as
+H.264 on 2026-10-05 and nothing said so. Every launch warning is now also a `beam: warning <text>`
+line, whatever the user's warnings preference, and Beam shows and logs it.
+
+One fallback Moonlight never warns about is added: Auto settling on software decoding, which is what
+a GPU that cannot decode the codec gets. On 2026-10-06 an Intel Arc decoding HEVC in software could
+not keep up at 80 Mbps, and only the decoder's own log said why.
+
 ---
 
 ## When to stop

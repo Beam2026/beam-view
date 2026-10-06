@@ -117,6 +117,11 @@ void ending()
     }
 }
 
+void warning(const QString& text)
+{
+    emitLine(QString("warning %1").arg(text));
+}
+
 void error(ErrorCode code, const QString& text)
 {
     emitLine(QString("error %1 %2").arg(code).arg(text));

@@ -975,6 +975,9 @@ bool Session::initialize(QQuickWindow* qtWindow)
 
 void Session::emitLaunchWarning(QString text)
 {
+    // Beam (P11): always said on stdout, so a fallback is never silent -- whatever the preference.
+    BeamStatus::warning(text);
+
     if (m_Preferences->configurationWarnings) {
         // Queue this launch warning to be displayed after validation
         m_LaunchWarnings.append(text);
@@ -2534,6 +2537,16 @@ void Session::exec()
                                  "Failed to recreate decoder after reset");
                     emit displayLaunchError(tr("Unable to initialize video decoder. Please check your streaming settings and try again."));
                     goto DispatchDeferredCleanup;
+                }
+
+                // Beam (P11): Auto settling on software decoding is a fallback like any other, and
+                // the one that hurts most -- a GPU that cannot decode the codec leaves the CPU to
+                // keep up with the bitrate, and at 80 Mbps it did not. Said once per session.
+                static bool warnedSoftwareDecode = false;
+                if (!warnedSoftwareDecode && !s_ActiveSession->m_VideoDecoder->isHardwareAccelerated() &&
+                    m_Preferences->videoDecoderSelection == StreamingPreferences::VDS_AUTO) {
+                    warnedSoftwareDecode = true;
+                    BeamStatus::warning(tr("This PC's GPU cannot decode this stream, so it is decoded in software, which may not keep up at high bitrates. Choosing H.264 or a lower bitrate helps."));
                 }
 
                 // As of SDL 2.0.12, SDL_RecreateWindow() doesn't carry over mouse capture

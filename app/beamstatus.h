@@ -8,6 +8,7 @@
 //
 //   beam: connecting
 //   beam: first-frame
+//   beam: warning <text>
 //   beam: error <code> <text>
 //   beam: ended <reason>
 //
@@ -49,6 +50,11 @@ void raised();
 // seconds of polite shutdown that follow. Beam ends the session on it rather
 // than waiting for this process to exit.
 void ending();
+
+// A setting this session could not honour, and what it does instead -- a codec the host cannot
+// encode, surround the audio device cannot play, HDR the GPU cannot decode. Headless, these were
+// queued for a dialog that never shows, so the fallback happened with no word to anyone (P11).
+void warning(const QString& text);
 
 void error(ErrorCode code, const QString& text);
 

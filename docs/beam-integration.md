@@ -162,6 +162,7 @@ client succeeds and exits 0).
 beam: connecting             <- emitted when the stream command starts work
 beam: first-frame            <- first video frame on screen in this window; hide Beam now
 beam: ending                 <- the user asked to end the stream; end the session now, do not wait for exit
+beam: warning <text>         <- a setting this session could not honour, and what it does instead (P11)
 beam: error <code> <text>    <- Beam renders this in its own words
 beam: ended <reason>         <- reason is "clean" or "error"; process exits after
 ```

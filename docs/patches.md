@@ -406,6 +406,32 @@ One fallback Moonlight never warns about is added: Auto settling on software dec
 a GPU that cannot decode the codec gets. On 2026-10-06 an Intel Arc decoding HEVC in software could
 not keep up at 80 Mbps, and only the decoder's own log said why.
 
+## P12 — A host trusted by its certificate, without pairing, 2026-10-06
+
+`identity` in `app/main.cpp` and `app/cli/commandlineparser.cpp`; `--server-cert` there and in
+`ComputerManager::setPinnedServerCert` (`app/backend/computermanager.cpp`), read by `PendingAddTask`
+and `ComputerSeeker` (`app/backend/computerseeker.cpp`).
+
+Pairing exists to swap two certificates under a PIN. Beam already has a channel both sides trust --
+its own signalling, between two signed-in users -- so it swaps them there instead (Beam's backlog
+C5, beam-share's S6). `beam-view identity` prints this install's client certificate as
+`beam: identity <base64 of PEM>`; the host's Sunshine trusts it for the session. `stream
+--server-cert <base64 of PEM>` pins the host's certificate for this process, in place of the one
+pairing would have saved, so the stream needs no `pair` at all. Only public certificates cross:
+each side still proves on every TLS connection that it holds its private key.
+
+Two things a pinned stream needs that a paired one got for free:
+
+- **The host is looked up afresh every time.** Through the tunnel every host is `127.0.0.1`, so a
+  saved record at that address may be a different host from an earlier session, whose polling
+  only ever finds "an unexpected PC" there and reports it offline.
+- **The seeker waits for the app list.** A host added this way is paired the moment it is added,
+  before its poller has run; finding it stops polling, so without waiting there would never be an
+  app list, and the launch failed as "Failed to find application Desktop".
+
+Checked live against beam-share with S6: streams to a first frame with no `pair`; pinning the wrong
+certificate fails as not paired; after the session is cancelled it is refused.
+
 ---
 
 ## When to stop

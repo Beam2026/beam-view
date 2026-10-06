@@ -56,6 +56,10 @@ void ending();
 // queued for a dialog that never shows, so the fallback happened with no word to anyone (P11).
 void warning(const QString& text);
 
+// This install's client certificate, base64 of its PEM: what a host trusts for a session instead of
+// pairing (P12). Public -- the private key never leaves this machine.
+void identity(const QByteArray& pem);
+
 void error(ErrorCode code, const QString& text);
 
 // reason is "clean" or "error"

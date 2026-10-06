@@ -14,6 +14,7 @@ public:
         QuitRequested,
         PairRequested,
         ListRequested,
+        IdentityRequested,  // Beam (P12)
     };
 
     GlobalCommandLineParser();
@@ -66,11 +67,13 @@ public:
     QString getHost() const;
     QString getAppName() const;
     qulonglong getEmbedHwnd() const;
+    QByteArray getServerCert() const;
 
 private:
     QString m_Host;
     QString m_AppName;
     qulonglong m_EmbedHwnd = 0;
+    QByteArray m_ServerCert;
     QMap<QString, StreamingPreferences::WindowMode> m_WindowModeMap;
     QMap<QString, StreamingPreferences::AudioConfig> m_AudioConfigMap;
     QMap<QString, StreamingPreferences::VideoCodecConfig> m_VideoCodecMap;

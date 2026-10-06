@@ -219,6 +219,11 @@ class ComputerManager : public QObject
 public:
     explicit ComputerManager(StreamingPreferences* prefs);
 
+    // Beam (P12): a host certificate to trust for any host this process adds, as if it had been
+    // saved by pairing. Beam passes the one its host sent for this session.
+    static void setPinnedServerCert(const QSslCertificate& cert);
+    static bool hasPinnedServerCert();
+
     virtual ~ComputerManager();
 
     Q_INVOKABLE void startPolling();

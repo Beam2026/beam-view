@@ -192,6 +192,8 @@ GlobalCommandLineParser::ParseResult GlobalCommandLineParser::parse(const QStrin
                 return PairRequested;
             } else if (action == "list") {
                 return ListRequested;
+            } else if (action == "identity") {
+                return IdentityRequested;
             }
         }
 
@@ -386,6 +388,7 @@ void StreamCommandLineParser::parse(const QStringList &args, StreamingPreference
 #ifdef Q_OS_WIN32
     parser.addValueOption("embed-hwnd", "a native window handle (decimal) to create the stream window inside");
 #endif
+    parser.addValueOption("server-cert", "the host's certificate (base64 of its PEM), trusted instead of pairing");
 
     if (!parser.parse(args)) {
         parser.showError(parser.errorText());
@@ -532,6 +535,15 @@ void StreamCommandLineParser::parse(const QStringList &args, StreamingPreference
     }
 #endif
 
+    // Beam (P12): the host's certificate, from the host itself through Beam, pinned instead of the one
+    // pairing would have saved.
+    if (parser.isSet("server-cert")) {
+        m_ServerCert = QByteArray::fromBase64(parser.value("server-cert").toLatin1());
+        if (!m_ServerCert.startsWith("-----BEGIN CERTIFICATE-----")) {
+            parser.showError("server-cert must be the base64 of a PEM certificate");
+        }
+    }
+
     // This method will not return and terminates the process if --version or
     // --help is specified
     parser.handleHelpAndVersionOptions();
@@ -562,6 +574,11 @@ QString StreamCommandLineParser::getAppName() const
 qulonglong StreamCommandLineParser::getEmbedHwnd() const
 {
     return m_EmbedHwnd;
+}
+
+QByteArray StreamCommandLineParser::getServerCert() const
+{
+    return m_ServerCert;
 }
 
 ListCommandLineParser::ListCommandLineParser()

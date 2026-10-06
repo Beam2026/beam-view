@@ -122,6 +122,11 @@ void warning(const QString& text)
     emitLine(QString("warning %1").arg(text));
 }
 
+void identity(const QByteArray& pem)
+{
+    emitLine(QString("identity %1").arg(QString::fromLatin1(pem.toBase64())));
+}
+
 void error(ErrorCode code, const QString& text)
 {
     emitLine(QString("error %1 %2").arg(code).arg(text));

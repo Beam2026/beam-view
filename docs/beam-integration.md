@@ -29,8 +29,9 @@ repeatable, and safe to run against an already-paired host.
 ## What Beam invokes
 
 ```powershell
+beam-view.exe identity
 beam-view.exe pair   127.0.0.1:48989 --pin 1234 --beam-session <session id>
-beam-view.exe stream 127.0.0.1:48989 "Desktop" --display-mode borderless --resolution 1920x1080 --capture-system-keys always --audio-on-host --quit-after --absolute-mouse --fps 60 [--bitrate 50000]
+beam-view.exe stream 127.0.0.1:48989 "Desktop" --display-mode borderless --resolution 1920x1080 --capture-system-keys always --audio-on-host --quit-after --absolute-mouse --fps 60 [--bitrate 50000] [--server-cert <base64 PEM>]
 beam-view.exe quit   127.0.0.1:48989
 ```
 
@@ -76,6 +77,11 @@ signalling channel, and the host's copy of Beam approves it against Sunshine. No
 Each `pair` is **one attempt**. Beam retries up to three times itself, with a fresh PIN each time,
 because the host only answers a PIN it has been sent. With `--beam-session`, the next attempt's
 request replaces the failed one in the host's Sunshine (beam-share), so nothing needs clearing.
+
+**Usually there is no `pair` at all** (P12). `identity` prints this install's certificate as
+`beam: identity <base64 of PEM>`; Beam sends it to the host, whose Sunshine trusts it for the
+session and returns its own, which Beam passes back as `stream --server-cert`. `pair` is the
+fallback, when the host never sends its certificate -- an older Beam or beam-share on that side.
 
 `--beam-session` (P10) puts `beamid=<id>` on every pairing request, so a host running beam-share
 answers it with the PIN approved for that session and no other. It takes 1-64 letters, digits, `-`
@@ -163,6 +169,7 @@ beam: connecting             <- emitted when the stream command starts work
 beam: first-frame            <- first video frame on screen in this window; hide Beam now
 beam: ending                 <- the user asked to end the stream; end the session now, do not wait for exit
 beam: warning <text>         <- a setting this session could not honour, and what it does instead (P11)
+beam: identity <base64>      <- `identity` only: this install's certificate, PEM, base64 (P12)
 beam: error <code> <text>    <- Beam renders this in its own words
 beam: ended <reason>         <- reason is "clean" or "error"; process exits after
 ```

@@ -52,6 +52,9 @@
 #include "backend/autoupdatechecker.h"
 #include "backend/computermanager.h"
 #include "backend/nvpairingmanager.h"
+#include "backend/identitymanager.h"
+#include "beamstatus.h"
+#include <QSslCertificate>
 #include "backend/systemproperties.h"
 #include "streaming/session.h"
 #include "settings/streamingpreferences.h"
@@ -813,6 +816,7 @@ int main(int argc, char *argv[])
     GlobalCommandLineParser::ParseResult commandLineParserResult = parser.parse(app.arguments());
     switch (commandLineParserResult) {
     case GlobalCommandLineParser::ListRequested:
+    case GlobalCommandLineParser::IdentityRequested:
         // Don't log to the console since it will jumble the command output
         s_SuppressVerboseOutput = true;
         break;
@@ -1014,6 +1018,9 @@ int main(int argc, char *argv[])
             streamParser.parse(app.arguments(), preferences);
             QString host    = streamParser.getHost();
             QString appName = streamParser.getAppName();
+            if (!streamParser.getServerCert().isEmpty()) {
+                ComputerManager::setPinnedServerCert(QSslCertificate(streamParser.getServerCert()));
+            }
             auto launcher   = new CliStartStream::Launcher(host, appName, preferences, &app);
             auto runner     = new CliHeadless::StreamRunner(launcher, streamParser.getEmbedHwnd(), &app);
             runner->run(new ComputerManager(preferences));
@@ -1029,6 +1036,12 @@ int main(int argc, char *argv[])
             auto runner   = new CliHeadless::QuitRunner(launcher, &app);
             runner->run(new ComputerManager(StreamingPreferences::get()));
             break;
+        }
+    case GlobalCommandLineParser::IdentityRequested:
+        {
+            // Beam (P12): this install's certificate, for the host to trust instead of pairing.
+            BeamStatus::identity(IdentityManager::get()->getCertificate());
+            return 0;
         }
     case GlobalCommandLineParser::PairRequested:
         {

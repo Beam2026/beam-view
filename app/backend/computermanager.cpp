@@ -726,6 +726,19 @@ void ComputerManager::stopPollingAsync()
     }
 }
 
+// Beam (P12): set from `stream --server-cert`, read by PendingAddTask.
+static QSslCertificate s_PinnedServerCert;
+
+void ComputerManager::setPinnedServerCert(const QSslCertificate& cert)
+{
+    s_PinnedServerCert = cert;
+}
+
+bool ComputerManager::hasPinnedServerCert()
+{
+    return !s_PinnedServerCert.isNull();
+}
+
 void ComputerManager::addNewHostManually(QString address)
 {
     QUrl url = QUrl::fromUserInput("moonlight://" + address);
@@ -866,8 +879,14 @@ private:
             }
         }
 
+        // Beam (P12): a certificate the host sent for this session wins over any record, which
+        // describes whoever was at this address last time.
+        if (!s_PinnedServerCert.isNull()) {
+            http.setServerCert(s_PinnedServerCert);
+        }
+
         // Fetch serverinfo again over HTTPS with the pinned cert
-        if (existingComputer != nullptr) {
+        if (existingComputer != nullptr || !s_PinnedServerCert.isNull()) {
             Q_ASSERT(http.httpsPort() != 0);
             serverInfo = fetchServerInfo(http);
             if (serverInfo.isEmpty()) {

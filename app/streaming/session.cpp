@@ -992,9 +992,9 @@ bool Session::validateLaunch(SDL_Window* testWindow)
         return false;
     }
 
-    if (m_Preferences->absoluteMouseMode && !m_App.isAppCollectorGame) {
-        emitLaunchWarning(tr("Your selection to enable remote desktop mouse mode may cause problems in games."));
-    }
+    // Beam (P11): not raised. Remote desktop mouse mode is Beam's own default for driving a desktop,
+    // chosen in its Settings, so this is not a fallback -- and as a `beam: warning` it was said on
+    // every session, which drowned the warnings that are.
 
     if (m_Preferences->videoDecoderSelection == StreamingPreferences::VDS_FORCE_SOFTWARE) {
         emitLaunchWarning(tr("Your settings selection to force software decoding may cause poor streaming performance."));

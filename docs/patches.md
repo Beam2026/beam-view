@@ -445,6 +445,20 @@ the stream, a moment later and before the launch request. About 0.2 s of every l
 laptop measured on 2026-10-06. The check now runs on the input handler's own subsystem, right after
 it starts. The warning is the same and still reaches Beam as a `beam: warning`.
 
+## P14 — The host's first keyframe is not thrown away, 2026-10-07
+
+`Session::drSubmitDecodeUnit` and the decoder-creation path in `Session::exec`
+(`app/streaming/session.cpp`).
+
+The stream's first decoder is made when its window is first shown, and video starts flowing before
+that. Frames that arrived with no decoder were dropped -- the host's opening keyframe among them --
+and the new decoder then asked for another, so the first picture waited a round trip and an encode
+for it: 0.22 s between two laptops on 2026-10-06. Now the first frames wait, on the decode thread, up
+to 200 ms for the first decoder (it reads a queue of 15 frames, so nothing is lost meanwhile), and
+that decoder does not ask for a keyframe -- a request makes the stream drop every frame until the
+new one comes. If the wait runs out, frames drop as before and the decoder asks for a keyframe when
+it finds none.
+
 ---
 
 ## When to stop

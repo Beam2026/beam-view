@@ -409,8 +409,8 @@ not keep up at 80 Mbps, and only the decoder's own log said why.
 ## P12 — A host trusted by its certificate, without pairing, 2026-10-06
 
 `identity` in `app/main.cpp` and `app/cli/commandlineparser.cpp`; `--server-cert` there and in
-`ComputerManager::setPinnedServerCert` (`app/backend/computermanager.cpp`), read by `PendingAddTask`
-and `ComputerSeeker` (`app/backend/computerseeker.cpp`).
+`ComputerManager::setPinnedServerCert` (`app/backend/computermanager.cpp`), read by its constructor,
+`saveHosts`, `PendingAddTask` and `ComputerSeeker` (`app/backend/computerseeker.cpp`).
 
 Pairing exists to swap two certificates under a PIN. Beam already has a channel both sides trust --
 its own signalling, between two signed-in users -- so it swaps them there instead (Beam's backlog
@@ -422,15 +422,28 @@ each side still proves on every TLS connection that it holds its private key.
 
 Two things a pinned stream needs that a paired one got for free:
 
-- **The host is looked up afresh every time.** Through the tunnel every host is `127.0.0.1`, so a
-  saved record at that address may be a different host from an earlier session, whose polling
-  only ever finds "an unexpected PC" there and reports it offline.
+- **Saved hosts are neither loaded nor saved.** Through the tunnel every host is `127.0.0.1`, so
+  saved records are earlier sessions' hosts at the same address. Each one polled it with its own
+  stale certificate -- "Found unexpected PC" over and over -- and, on this PC with eight of them,
+  the second stream to the same host crashed inside Windows' `ncrypt.dll` in two runs of five. With
+  none loaded, six streams in a row ran clean.
 - **The seeker waits for the app list.** A host added this way is paired the moment it is added,
   before its poller has run; finding it stops polling, so without waiting there would never be an
   app list, and the launch failed as "Failed to find application Desktop".
 
 Checked live against beam-share with S6: streams to a first frame with no `pair`; pinning the wrong
 certificate fails as not paired; after the session is cancelled it is refused.
+
+## P13 — The gamepad subsystem starts once, 2026-10-06
+
+`SdlInputHandler::findUnmappedGamepads` in `app/streaming/input/gamepad.cpp`, called from
+`Session::start` (`app/streaming/session.cpp`).
+
+`validateLaunch` checked for unmapped gamepads by starting SDL's gamepad subsystem, loading the
+mapping database and shutting it all down again -- and the input handler then started it again for
+the stream, a moment later and before the launch request. About 0.2 s of every launch on the
+laptop measured on 2026-10-06. The check now runs on the input handler's own subsystem, right after
+it starts. The warning is the same and still reaches Beam as a `beam: warning`.
 
 ---
 

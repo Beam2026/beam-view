@@ -158,6 +158,19 @@ private:
     NvComputer* m_Computer;
 };
 
+// Beam (P12): set from `stream --server-cert`, read by PendingAddTask and the constructor.
+static QSslCertificate s_PinnedServerCert;
+
+void ComputerManager::setPinnedServerCert(const QSslCertificate& cert)
+{
+    s_PinnedServerCert = cert;
+}
+
+bool ComputerManager::hasPinnedServerCert()
+{
+    return !s_PinnedServerCert.isNull();
+}
+
 ComputerManager::ComputerManager(StreamingPreferences* prefs)
     : m_Prefs(prefs),
       m_PollingRef(0),
@@ -165,25 +178,34 @@ ComputerManager::ComputerManager(StreamingPreferences* prefs)
       m_CompatFetcher(nullptr),
       m_NeedsDelayedFlush(false)
 {
-    QSettings settings;
+    // Beam (P12): a stream with the host's certificate pinned is about that one host, for one
+    // session. Through Beam's tunnel every host is 127.0.0.1, so saved hosts are earlier sessions'
+    // hosts at the same address: each would poll it with its own stale certificate, and one could
+    // be matched in place of this session's. Neither loaded nor saved -- see saveHosts().
+    if (hasPinnedServerCert()) {
+        qInfo() << "Beam: streaming to this session's host only; saved hosts are not used";
+    }
+    else {
+        QSettings settings;
 
-    // If there's a hosts backup copy, we must have failed to commit
-    // a previous update before exiting. Restore the backup now.
-    int hosts = settings.beginReadArray(SER_HOSTS_BACKUP);
-    if (hosts == 0) {
-        // If there's no host backup, read from the primary location.
+        // If there's a hosts backup copy, we must have failed to commit
+        // a previous update before exiting. Restore the backup now.
+        int hosts = settings.beginReadArray(SER_HOSTS_BACKUP);
+        if (hosts == 0) {
+            // If there's no host backup, read from the primary location.
+            settings.endArray();
+            hosts = settings.beginReadArray(SER_HOSTS);
+        }
+
+        // Inflate our hosts from QSettings
+        for (int i = 0; i < hosts; i++) {
+            settings.setArrayIndex(i);
+            NvComputer* computer = new NvComputer(settings);
+            m_KnownHosts[computer->uuid] = computer;
+            m_LastSerializedHosts[computer->uuid] = *computer;
+        }
         settings.endArray();
-        hosts = settings.beginReadArray(SER_HOSTS);
     }
-
-    // Inflate our hosts from QSettings
-    for (int i = 0; i < hosts; i++) {
-        settings.setArrayIndex(i);
-        NvComputer* computer = new NvComputer(settings);
-        m_KnownHosts[computer->uuid] = computer;
-        m_LastSerializedHosts[computer->uuid] = *computer;
-    }
-    settings.endArray();
 
     // Fetch latest compatibility data asynchronously
     m_CompatFetcher.start();
@@ -314,6 +336,11 @@ void DelayedFlushThread::run() {
 void ComputerManager::saveHosts()
 {
     Q_ASSERT(m_DelayedFlushThread != nullptr && m_DelayedFlushThread->isRunning());
+
+    // Beam (P12): a pinned session's host is not kept, so the next session starts clean too.
+    if (hasPinnedServerCert()) {
+        return;
+    }
 
     // Punt to a worker thread because QSettings on macOS can take ages (> 500 ms)
     // to persist our host list to disk (especially when a host has a bunch of apps).
@@ -726,19 +753,6 @@ void ComputerManager::stopPollingAsync()
     }
 }
 
-// Beam (P12): set from `stream --server-cert`, read by PendingAddTask.
-static QSslCertificate s_PinnedServerCert;
-
-void ComputerManager::setPinnedServerCert(const QSslCertificate& cert)
-{
-    s_PinnedServerCert = cert;
-}
-
-bool ComputerManager::hasPinnedServerCert()
-{
-    return !s_PinnedServerCert.isNull();
-}
-
 void ComputerManager::addNewHostManually(QString address)
 {
     QUrl url = QUrl::fromUserInput("moonlight://" + address);
@@ -879,8 +893,8 @@ private:
             }
         }
 
-        // Beam (P12): a certificate the host sent for this session wins over any record, which
-        // describes whoever was at this address last time.
+        // Beam (P12): the certificate the host sent for this session. With it pinned no record is
+        // loaded, so this is the only certificate there is.
         if (!s_PinnedServerCert.isNull()) {
             http.setServerCert(s_PinnedServerCert);
         }

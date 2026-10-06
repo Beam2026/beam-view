@@ -1215,10 +1215,8 @@ bool Session::validateLaunch(SDL_Window* testWindow)
         emitLaunchWarning(tr("Failed to open audio device. Audio will be unavailable during this session."));
     }
 
-    // Check for unmapped gamepads
-    if (!SdlInputHandler::getUnmappedGamepads().isEmpty()) {
-        emitLaunchWarning(tr("An attached gamepad has no mapping and won't be usable. Visit the Moonlight help to resolve this."));
-    }
+    // Beam (P13): unmapped gamepads are checked in start(), once the input handler has the gamepad
+    // subsystem up. Checking here started it a second time, about 0.2 s before every launch.
 
     // If we removed all codecs with the checks above, use H.264 as the codec of last resort.
     if (m_SupportedVideoFormats.empty()) {
@@ -1955,6 +1953,9 @@ void Session::start()
     // Initialize the gamepad code with our preferences
     // NB: m_InputHandler must be initialize before starting the connection.
     m_InputHandler = new SdlInputHandler(*m_Preferences, m_StreamConfig.width, m_StreamConfig.height);
+    if (!SdlInputHandler::findUnmappedGamepads().isEmpty()) {
+        emitLaunchWarning(tr("An attached gamepad has no mapping and won't be usable. Visit the Moonlight help to resolve this."));
+    }
 
     // Kick off the async connection thread then return to the caller to pump the event loop
     auto thread = new AsyncConnectionStartThread(this);

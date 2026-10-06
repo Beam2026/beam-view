@@ -923,8 +923,6 @@ void SdlInputHandler::setAdaptiveTriggers(uint16_t controllerNumber, DualSenseOu
 
 QString SdlInputHandler::getUnmappedGamepads()
 {
-    QString ret;
-
     if (SDL_InitSubSystem(SDL_INIT_GAMECONTROLLER) != 0) {
         SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
                      "SDL_InitSubSystem(SDL_INIT_GAMECONTROLLER) failed: %s",
@@ -933,6 +931,21 @@ QString SdlInputHandler::getUnmappedGamepads()
 
     MappingManager mappingManager;
     mappingManager.applyMappings();
+
+    QString ret = findUnmappedGamepads();
+
+    SDL_QuitSubSystem(SDL_INIT_GAMECONTROLLER);
+
+    // Flush stale events so they aren't processed by the main session event loop
+    SDL_FlushEvents(SDL_JOYDEVICEADDED, SDL_JOYDEVICEREMOVED);
+    SDL_FlushEvents(SDL_CONTROLLERDEVICEADDED, SDL_CONTROLLERDEVICEREMAPPED);
+
+    return ret;
+}
+
+QString SdlInputHandler::findUnmappedGamepads()
+{
+    QString ret;
 
     int numJoysticks = SDL_NumJoysticks();
     for (int i = 0; i < numJoysticks; i++) {
@@ -974,12 +987,6 @@ QString SdlInputHandler::getUnmappedGamepads()
             }
         }
     }
-
-    SDL_QuitSubSystem(SDL_INIT_GAMECONTROLLER);
-
-    // Flush stale events so they aren't processed by the main session event loop
-    SDL_FlushEvents(SDL_JOYDEVICEADDED, SDL_JOYDEVICEREMOVED);
-    SDL_FlushEvents(SDL_CONTROLLERDEVICEADDED, SDL_CONTROLLERDEVICEREMAPPED);
 
     return ret;
 }

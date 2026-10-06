@@ -28,11 +28,7 @@ void ComputerSeeker::start(int timeout)
     //
     // NB: We don't do this unconditionally because it will wipe out the user's
     // manual address if they pass another reachable hostname/address.
-    //
-    // Beam (P12): with a pinned certificate, always. Through Beam's tunnel every host is 127.0.0.1,
-    // so a record matching this address may be a different host from an earlier session, whose
-    // polling only ever finds "an unexpected PC" there.
-    if (!findMatchingComputer() || ComputerManager::hasPinnedServerCert()) {
+    if (!findMatchingComputer()) {
         m_ComputerManager->addNewHostManually(m_ComputerName);
     }
 

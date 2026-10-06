@@ -155,6 +155,11 @@ public:
     static
     QString getUnmappedGamepads();
 
+    // Beam (P13): the same answer, from a handler whose gamepad subsystem is already up and mapped,
+    // so asking costs no second start of it.
+    static
+    QString findUnmappedGamepads();
+
 private:
     enum KeyCombo {
         KeyComboQuit,

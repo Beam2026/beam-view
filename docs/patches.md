@@ -114,8 +114,9 @@ ships, and leaving both working is one less thing for a rebase to fight over.
 
 **Neither Beam icon is generated here.** Both are byte-identical copies from the Beam repo, which
 owns the artwork: `app/beam.ico` from `desktop/src-tauri/icons/icon.ico`, `app/res/beam.png` from
-`desktop/src-tauri/icons/128x128.png`. Refresh them by copying — last done 2026-10-06, for the
-redrawn prism (a straight beam, the spectrum starting inside it). Do **not** rasterise `beam.ico` out
+`desktop/src-tauri/icons/128x128.png`. Refresh them by copying — last done 2026-10-09, when Beam's
+icon set became generated from one drawing, `desktop/src-tauri/app-icon.svg`, which the app's own
+mark draws too. Do **not** rasterise `beam.ico` out
 of `res/beam.png` — that PNG is 128×128 and the committed `.ico` carries a 256×256 entry, so
 “regenerating” it would quietly downgrade the icon Windows shows at the largest size.
 `generate-ico.sh` says all of this in its header now; it used to say nothing and produce

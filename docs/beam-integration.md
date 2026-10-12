@@ -195,6 +195,9 @@ keyboard lock|free      -> beam: state keyboard lock|free   Windows, Alt+Tab, Al
 disconnect              -> beam: ending                     the quit key combination's own path
 ```
 
+With the keyboard free, Alt+F4 is this PC's again -- and the stream is the window in front, so it
+closes the stream and the session ends (`beam: ending`), as closing any window would.
+
 Upstream's own toggles, which no call makes, are reported too, so the log has every change:
 
 ```text

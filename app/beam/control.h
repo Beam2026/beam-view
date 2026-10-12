@@ -38,10 +38,9 @@ public:
     // follows focus when "mute when not in front" is on and would otherwise undo this.
     static bool soundOff();
 
-    // Said after a key combination changed one of these, so Beam hears it as it would a call.
+    // Said after a call or a key combination changed one of these, so Beam hears both alike.
     static void reportStats(Session* session);
     static void reportWindow(Session* session);
-
     static void reportMouse(Session* session);
 
     // Upstream's own toggles, which no call makes, said so the log has every change:

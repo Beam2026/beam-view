@@ -35,7 +35,7 @@ line count is a fair proxy for how much it will hurt:
 | File | Lines | What, and how exposed it is |
 | --- | --- | --- |
 | `app/streaming/session.cpp` | **172** | Embed window, geometry, focus. **The one to worry about** |
-| `app/main.cpp` | 60 | Settings identity, routing to the headless runners, P15's refusal |
+| `app/main.cpp` | 55 | Settings identity, routing to the headless runners, P15's refusal |
 | `app/cli/commandlineparser.cpp` | 27 | `--embed-hwnd` parsing, P15's `beam: error` |
 | `app/cli/pair.cpp` | 22 | Idempotent re-pair |
 | `app/backend/nvpairingmanager.cpp` | 4 | P6: pairing key taken as bytes, not a C string |
@@ -458,7 +458,8 @@ The request is what recovers that, so it stays. The number P14 is not reused.
 ## P15 — No front end to reach, 2026-10-12
 
 Step 1 of [`plan.md`](plan.md). `app/main.cpp`, right after the command line is parsed, and
-`showError` in `app/cli/commandlineparser.cpp`. 25 lines added to upstream files, none removed.
+`showError` in `app/cli/commandlineparser.cpp`, each a one-line call into
+`BeamStatus::noCommand()` or `BeamStatus::error`. 20 lines added to upstream files, none removed.
 
 Started with no command -- double-clicked, or run bare -- upstream opened its QML window: the PC
 list, settings and all. Beam never starts it that way, so it is now refused before any window can
@@ -483,7 +484,7 @@ and it does that exactly when stderr is not redirected, which is a double-click.
 Beam's dev tree, `desktop/src-tauri/resources/engines/beam-view/`, that new file was seen by
 `tauri dev`'s watcher, which rebuilt and restarted Beam and ended the session it was running
 (2026-10-12). No arguments at all is now refused at the top of `main`; the check after parsing
-stays for options with no command. A release Beam has no watcher, and Beam always pipes stderr, so
+stays for options with no command -- Qt's own, such as `-platform windows`, which pass the first. A release Beam has no watcher, and Beam always pipes stderr, so
 its own runs never write that file.
 
 Checked 2026-10-12 against the built exe: no arguments, as a double-click, exits 1 within a second

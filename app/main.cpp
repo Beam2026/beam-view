@@ -427,13 +427,11 @@ int main(int argc, char *argv[])
 {
     SDL_SetMainReady();
 
-    // BEAM (P15): no command at all -- a double-click -- is refused before anything touches the disk.
-    // Below, portable mode writes a log file beside the exe whenever stderr is not redirected, which
-    // is exactly a double-click; in Beam's dev tree that folder is watched, so the new file restarted
-    // Beam mid-session (2026-10-12). The check after parsing still catches options with no command.
+    // BEAM (P15): there is no front end. A bare start -- a double-click -- is refused before anything
+    // touches the disk: portable mode writes a log beside the exe when stderr is not redirected, and
+    // in Beam's dev tree that new file restarted Beam mid-session. See patches.md.
     if (argc < 2) {
-        BeamStatus::error(BeamStatus::ErrorLaunchFailed,
-                          "beam-view has no window of its own: Beam starts it with a command");
+        BeamStatus::noCommand();
         return 1;
     }
 
@@ -825,13 +823,10 @@ int main(int argc, char *argv[])
     GlobalCommandLineParser parser;
     GlobalCommandLineParser::ParseResult commandLineParserResult = parser.parse(app.arguments());
 
-    // BEAM (P15): there is no front end to reach. Started with no command -- double-clicked, say --
-    // upstream opened its QML window here. Beam starts this program with a command every time, so
-    // anything else is refused before a window of any kind can exist. The QML files stay in the
-    // tree, unused, so a sync with upstream never meets a deleted file.
+    // BEAM (P15): options but no command -- Qt's own, such as -platform -- would open upstream's QML
+    // window below, which stays in the tree unreachable rather than deleted.
     if (commandLineParserResult == GlobalCommandLineParser::NormalStartRequested) {
-        BeamStatus::error(BeamStatus::ErrorLaunchFailed,
-                          "beam-view has no window of its own: Beam starts it with a command");
+        BeamStatus::noCommand();
         return 1;
     }
 

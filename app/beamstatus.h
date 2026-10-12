@@ -62,6 +62,10 @@ void identity(const QByteArray& pem);
 
 void error(ErrorCode code, const QString& text);
 
+// Started without a command (P15): there is no front end to fall back to, so this is a launch
+// failure. The caller exits 1 straight after.
+void noCommand();
+
 // reason is "clean" or "error"
 void ended(const QString& reason);
 

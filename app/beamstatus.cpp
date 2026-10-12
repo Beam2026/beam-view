@@ -132,6 +132,11 @@ void error(ErrorCode code, const QString& text)
     emitLine(QString("error %1 %2").arg(code).arg(text));
 }
 
+void noCommand()
+{
+    error(ErrorLaunchFailed, "beam-view has no window of its own: Beam starts it with a command");
+}
+
 void ended(const QString& reason)
 {
     emitLine(QString("ended %1").arg(reason));

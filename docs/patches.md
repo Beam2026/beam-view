@@ -531,7 +531,11 @@ Beam's side: `viewer.rs` pipes the stream's stdin, `viewer_call` writes only the
 (`VIEWER_CALLS`), and `parse_beam_status` gives `state` lines their own kind. Checked live on
 2026-10-13, from Beam on two machines: `stats on`/`off`, `window windowed` (0.9 s, the decoder
 rebuilt), `sound off`/`on` and `disconnect` (`beam: ending`, session over 0.1 s later) were each
-answered with their `beam: state`. Not yet seen: `window full`, and the two key combinations' reports.
+answered with their `beam: state`. A second session the same night, on the build with the
+separate locks and every toggle reported, checked every call -- `window full`, `mouse lock`/`free` and
+`keyboard lock`/`free` among them -- and the S, X, L, C, Z and D combinations, a click back into the
+stream, and `capture on` at the stream's start. Not yet seen: `Ctrl+Alt+Shift+M`, which never
+reached beam-view in that session.
 
 ---
 

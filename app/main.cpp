@@ -427,6 +427,16 @@ int main(int argc, char *argv[])
 {
     SDL_SetMainReady();
 
+    // BEAM (P15): no command at all -- a double-click -- is refused before anything touches the disk.
+    // Below, portable mode writes a log file beside the exe whenever stderr is not redirected, which
+    // is exactly a double-click; in Beam's dev tree that folder is watched, so the new file restarted
+    // Beam mid-session (2026-10-12). The check after parsing still catches options with no command.
+    if (argc < 2) {
+        BeamStatus::error(BeamStatus::ErrorLaunchFailed,
+                          "beam-view has no window of its own: Beam starts it with a command");
+        return 1;
+    }
+
     // Set the app version for the QCommandLineParser's showVersion() command
     QCoreApplication::setApplicationVersion(VERSION_STR);
 

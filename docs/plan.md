@@ -79,7 +79,8 @@ a pipe, and Beam writes one call per line:
 stats on|off            the performance overlay (the graphs, once step 6 lands)
 window full|windowed    full screen (borderless) or a window
 sound on|off            the stream's audio on this PC
-input capture|release   the window holding the mouse and keyboard, or letting them go
+mouse lock|free         the cursor kept inside the stream window, or free to leave it
+keyboard lock|free      Windows, Alt+Tab and Alt+F4 sent to the host, or kept on this PC
 disconnect              end the stream; same path as Ctrl+Alt+Shift+Q (beam: ending)
 ```
 

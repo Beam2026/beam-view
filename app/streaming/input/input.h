@@ -83,6 +83,8 @@ struct DualSenseOutputReport{
 
 class SdlInputHandler
 {
+    friend class BeamSessionControl; // BEAM: mouse and keyboard locks (P16)
+
 public:
     explicit SdlInputHandler(StreamingPreferences& prefs, int streamWidth, int streamHeight);
 

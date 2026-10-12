@@ -496,13 +496,13 @@ first frame and ended cleanly.
 ## P16 — Calls on stdin while a stream runs, 2026-10-13
 
 Step 2 of [`plan.md`](plan.md); the contract is in [`beam-integration.md`](beam-integration.md).
-New in `app/beam/control.{h,cpp}` (`BeamSessionControl`). Hooks in upstream files, 16 lines, one
+New in `app/beam/control.{h,cpp}` (`BeamSessionControl`). Hooks in upstream files, 17 lines, one
 changed: `session.h` (a `friend`), `session.cpp` (start the reader before the event loop, apply a
-call in it), `audio.cpp` (`sound off` skips playback), `keyboard.cpp` (report the stats and
-full-screen key combinations), `input.cpp` (report every input capture change, at the end of
-`setCaptureActive`), `app.pro` (the two files).
+call in it), `audio.cpp` (`sound off` skips playback), `keyboard.cpp` (report the stats,
+full-screen and pointer-lock key combinations), `input.h` (a `friend`, for the two locks), `app.pro` (the two files).
 
-`stats on|off`, `window full|windowed`, `sound on|off`, `input capture|release` and `disconnect`, one per line on the
+`stats on|off`, `window full|windowed`, `sound on|off`, `mouse lock|free`, `keyboard lock|free` and
+`disconnect`, one per line on the
 stream's stdin. A reader thread parses them and posts an SDL user event (`SDL_CODE_BEAM_CALL`,
 202); the session's thread applies it, so nothing touches the window, the renderer or the session
 from the reader. Each change -- a call, or the key combination that does the same -- is said as
@@ -512,6 +512,14 @@ hears `beam: ending` as it always has.
 `sound off` is its own switch rather than the session's `m_AudioMuted`: that one follows focus
 when "mute when not in front" is on, and a focus change would have turned the sound back on.
 `window` is upstream's `toggleFullscreen`, which on Windows rebuilds the decoder -- one blink.
+
+The mouse and the keyboard lock separately, so a person can have both, either or neither. `mouse`
+is upstream's pointer region lock (the cursor cannot leave the window), marked as the person's
+choice so a window-mode change no longer resets it. `keyboard` is the keyboard grab, switched
+between `CSK_ALWAYS` and `CSK_OFF`: Windows, Alt+Tab and Alt+F4 go to the host or stay here, and
+every other key reaches the stream either way. A first version had one `input capture|release`
+for both, as `Ctrl+Alt+Shift+Z` does it; release there also stops sending input at all, which is
+not a lock.
 
 Beam's side: `viewer.rs` pipes the stream's stdin, `viewer_call` writes only the calls above
 (`VIEWER_CALLS`), and `parse_beam_status` gives `state` lines their own kind. Checked live on

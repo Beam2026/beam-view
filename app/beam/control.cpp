@@ -17,21 +17,19 @@ enum Call : intptr_t {
     CallStats,
     CallWindow,
     CallSound,
-    CallInput,
+    CallMouse,
+    CallKeyboard,
     CallDisconnect,
 };
 
 std::atomic<bool> s_SoundOff{false};
-
-// The capture last reported, so a repeated setCaptureActive with no change says nothing. Starts
-// unknown (-1): the first report always goes out.
-std::atomic<int> s_ReportedCapture{-1};
 
 // A call is one short line; anything longer is not one, and is read past rather than split.
 constexpr int kMaxLine = 128;
 
 // Words for the parts of a call, so the reader and the reports say them the same way.
 const char* onOff(bool on) { return on ? "on" : "off"; }
+const char* lockFree(bool locked) { return locked ? "lock" : "free"; }
 
 void post(Call call, bool value)
 {
@@ -73,8 +71,11 @@ void parse(const QString& line)
     else if (what == "sound" && choice(value, "on", "off", on)) {
         post(CallSound, on);
     }
-    else if (what == "input" && choice(value, "capture", "release", on)) {
-        post(CallInput, on);
+    else if (what == "mouse" && choice(value, "lock", "free", on)) {
+        post(CallMouse, on);
+    }
+    else if (what == "keyboard" && choice(value, "lock", "free", on)) {
+        post(CallKeyboard, on);
     }
     else if (what == "disconnect" && words.size() == 1) {
         post(CallDisconnect, true);
@@ -151,20 +152,29 @@ void BeamSessionControl::apply(Session* session, const SDL_UserEvent& event)
         BeamStatus::state("sound", onOff(on));
         break;
 
-    case CallInput:
-        // Ctrl+Alt+Shift+Z's own steps: the handler grabs or lets go of both mouse and keyboard, and
-        // on letting go raises every key so none stays down on the host. It reports the change.
-        if (session->m_InputHandler->isCaptureActive() != on) {
-            session->m_InputHandler->setCaptureActive(on);
-            if (!on) {
-                session->m_InputHandler->raiseAllKeys();
-            }
-        }
-        else {
-            // Already so: nothing changed to report, but every call is answered.
-            BeamStatus::state("input", on ? "capture" : "release");
-        }
+    case CallMouse: {
+        // Upstream's pointer region lock, as its key combination sets it: the cursor cannot leave
+        // the stream window. Marked as the person's choice, so going full screen or windowed no
+        // longer changes it by itself.
+        SdlInputHandler* input = session->m_InputHandler;
+        input->m_PointerRegionLockActive = on;
+        input->m_PointerRegionLockToggledByUser = true;
+        input->updatePointerRegionLock();
+        reportMouse(session);
         break;
+    }
+
+    case CallKeyboard: {
+        // The keyboard grab: locked, Windows, Alt+Tab and Alt+F4 go to the host; free, they stay on
+        // this PC while every other key still reaches the stream. Beam starts every stream locked
+        // (`--capture-system-keys always`). Keys held now are raised, so none sticks on either side.
+        SdlInputHandler* input = session->m_InputHandler;
+        input->m_CaptureSystemKeysMode = on ? StreamingPreferences::CSK_ALWAYS : StreamingPreferences::CSK_OFF;
+        input->raiseAllKeys();
+        input->updateKeyboardGrabState();
+        BeamStatus::state("keyboard", lockFree(on));
+        break;
+    }
 
     case CallDisconnect: {
         // The quit key combination's own path, so Beam hears `beam: ending` as it does for that.
@@ -187,11 +197,9 @@ void BeamSessionControl::reportStats(Session* session)
     BeamStatus::state("stats", onOff(session->getOverlayManager().isOverlayEnabled(Overlay::OverlayDebug)));
 }
 
-void BeamSessionControl::reportInput(bool captured)
+void BeamSessionControl::reportMouse(Session* session)
 {
-    if (s_ReportedCapture.exchange(captured ? 1 : 0) != (captured ? 1 : 0)) {
-        BeamStatus::state("input", captured ? "capture" : "release");
-    }
+    BeamStatus::state("mouse", lockFree(session->m_InputHandler->m_PointerRegionLockActive));
 }
 
 void BeamSessionControl::reportWindow(Session* session)

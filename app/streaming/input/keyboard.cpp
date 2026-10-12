@@ -140,6 +140,7 @@ void SdlInputHandler::performSpecialKeyCombo(KeyCombo combo)
 
         // Apply the new region lock
         updatePointerRegionLock();
+        BeamSessionControl::reportMouse(Session::get()); // BEAM (P16)
         break;
 
     case KeyComboQuitAndExit:

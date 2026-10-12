@@ -181,14 +181,17 @@ flag -- is also a `beam: error 1` line, followed by the help text on stderr.
 
 **Calls on stdin while a stream runs (P16).** `stream`'s stdin is a pipe Beam writes to, one call
 per line, and every change -- a call, or `Ctrl+Alt+Shift+S` / `Ctrl+Alt+Shift+X` -- is answered
-with a `beam: state` line. `input` is also reported whenever the capture changes by itself -- a
-click back into the stream, focus going elsewhere, `Ctrl+Alt+Shift+Z`:
+with a `beam: state` line. The two locks are independent -- both, either or neither -- and every
+other key reaches the stream either way. A stream starts with the keyboard locked
+(`--capture-system-keys always`) and the mouse as upstream sets it for the window mode; once a
+call or `Ctrl+Alt+Shift+L` sets the mouse lock, changing the window mode leaves it alone:
 
 ```text
 stats on|off            -> beam: state stats on|off         the performance overlay
 window full|windowed    -> beam: state window full|windowed upstream's toggle; the picture blinks once
 sound on|off            -> beam: state sound on|off         this PC playing the stream's audio
-input capture|release   -> beam: state input capture|release the window holds the mouse and keyboard, or lets go
+mouse lock|free         -> beam: state mouse lock|free      the cursor kept inside the stream window, or free to leave
+keyboard lock|free      -> beam: state keyboard lock|free   Windows, Alt+Tab, Alt+F4 sent to the host, or kept here
 disconnect              -> beam: ending                     the quit key combination's own path
 ```
 

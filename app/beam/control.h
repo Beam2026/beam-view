@@ -10,7 +10,8 @@ class Session;
 //   stats on|off            the performance overlay
 //   window full|windowed    full screen (Beam's borderless) or a window
 //   sound on|off            this PC playing the stream's audio
-//   input capture|release   the stream window holding the mouse and keyboard, or letting them go
+//   mouse lock|free         the cursor kept inside the stream window, or free to leave it
+//   keyboard lock|free      Windows, Alt+Tab and Alt+F4 sent to the host, or kept on this PC
 //   disconnect              end the stream, exactly as Ctrl+Alt+Shift+Q does
 //
 // Every change, whoever made it -- a call, or a key combination -- is said as `beam: state <what>
@@ -41,9 +42,7 @@ public:
     static void reportStats(Session* session);
     static void reportWindow(Session* session);
 
-    // Said from the input handler on every capture change -- a call, a click back into the stream,
-    // focus going elsewhere, Ctrl+Alt+Shift+Z -- once per actual change.
-    static void reportInput(bool captured);
+    static void reportMouse(Session* session);
 
 private:
     static bool isFullScreen(Session* session);

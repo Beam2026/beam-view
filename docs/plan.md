@@ -69,28 +69,31 @@ Today, `beam-view.exe` started with no command, or double-clicked, opens Moonlig
 puts nothing on screen and prints one `beam: error`. `identity`, `pair`, `quit` and `stream` behave
 as before.
 
-## Step 2 -- Calls while a stream runs (P16)
+## Step 2 -- Calls while a stream runs (P16) -- **built 2026-10-13, live check pending**
 
-Beam starts beam-view with stdin closed today (`viewer.rs`, `Stdio::null()`). It becomes a pipe,
-and Beam writes one call per line:
+Beam started beam-view with stdin closed (`viewer.rs`, `Stdio::null()`). The stream's stdin is now
+a pipe, and Beam writes one call per line:
 
 ```text
-stats on|off            the performance graphs
+stats on|off            the performance overlay (the graphs, once step 6 lands)
 window full|windowed    full screen (borderless) or a window
 sound on|off            the stream's audio on this PC
-button show|hide        the Beam button over the stream
-menu open|close         the button's list
 disconnect              end the stream; same path as Ctrl+Alt+Shift+Q (beam: ending)
 ```
 
-- `app/beam/control.{h,cpp}`: a reader thread parses lines and posts SDL user events; the session's
-  event loop applies them. One `SessionControl` holds the actions, so the menu in step 5 calls the
-  same code.
-- Every change, whoever made it, is reported: `beam: state sound off`, `beam: state window
-  windowed`. That is how Beam learns what the person changed from the menu.
+`button show|hide` and `menu open|close` come with step 5, which builds what they act on.
+
+- `app/beam/control.{h,cpp}` (`BeamSessionControl`): a reader thread parses lines and posts an
+  SDL user event; the session's event loop applies it. The menu in step 5 calls the same actions.
+- Every change, whoever made it -- a call, `Ctrl+Alt+Shift+S` or `Ctrl+Alt+Shift+X` -- is
+  reported: `beam: state sound off`, `beam: state window windowed`.
+- `sound off` is its own switch, not the session's mute, which follows focus when "mute when not
+  in front" is on and would undo it.
+- `window` uses upstream's toggle, which on Windows rebuilds the decoder: the picture blinks once.
 - An unknown call is `beam: warning` and is otherwise ignored. A closed stdin changes nothing.
-- Beam side: `viewer.rs` pipes stdin and gets a `viewer_call` command through `ipc.ts`; nothing in
-  Beam's UI uses it until step 5 needs it.
+- Beam side: `viewer.rs` pipes the stream's stdin and has a `viewer_call` command that writes only
+  the calls above. Nothing in Beam's UI uses it until step 5; until then it is tried from the
+  devtools console of a development build.
 
 **Gate:** each call changes a live stream without interrupting it, and is answered with its
 `beam: state`; `disconnect` ends the session as cleanly as the key combination does.

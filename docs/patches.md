@@ -34,13 +34,14 @@ line count is a fair proxy for how much it will hurt:
 
 | File | Lines | What, and how exposed it is |
 | --- | --- | --- |
-| `app/streaming/session.cpp` | **172** | Embed window, geometry, focus. **The one to worry about** |
+| `app/streaming/session.cpp` | **177** | Embed window, geometry, focus; P16's two calls. **The one to worry about** |
 | `app/main.cpp` | 55 | Settings identity, routing to the headless runners, P15's refusal |
 | `app/cli/commandlineparser.cpp` | 27 | `--embed-hwnd` parsing, P15's `beam: error` |
 | `app/cli/pair.cpp` | 22 | Idempotent re-pair |
 | `app/backend/nvpairingmanager.cpp` | 4 | P6: pairing key taken as bytes, not a C string |
-| `app/app.pro` | 19 | Target name, new sources |
-| `app/streaming/session.h` | 12 | Embed members |
+| `app/app.pro` | 21 | Target name, new sources |
+| `app/streaming/session.h` | 13 | Embed members, P16's `friend` |
+| `app/streaming/audio/audio.cpp`, `input/keyboard.cpp` | 2, 3 | P16: `sound off`; the key combinations reported |
 | `pacer/pacer.cpp` | **5** | One call to `BeamStatus::firstFrame()` |
 | `cli/{listapps,quitstream,startstream}.cpp` | 2 each | Message wording |
 | `app/qml.qrc`, `Moonlight.exe.manifest` | 3, 1 | Removed QML, description |
@@ -489,7 +490,31 @@ its own runs never write that file.
 
 Checked 2026-10-12 against the built exe: no arguments, as a double-click, exits 1 within a second
 with no window and writes no file beside the exe; `bogus` and `stream` with no host each print one `beam: error 1`; `--help` and
-`identity` are unchanged. A stream through Beam on two machines is still to be run.
+`identity` are unchanged. Three streams through Beam on two machines on 2026-10-12 reached their
+first frame and ended cleanly.
+
+## P16 — Calls on stdin while a stream runs, 2026-10-13
+
+Step 2 of [`plan.md`](plan.md); the contract is in [`beam-integration.md`](beam-integration.md).
+New in `app/beam/control.{h,cpp}` (`BeamSessionControl`). Hooks in upstream files, 13 lines, one
+changed: `session.h` (a `friend`), `session.cpp` (start the reader before the event loop, apply a
+call in it), `audio.cpp` (`sound off` skips playback), `keyboard.cpp` (report the stats and
+full-screen key combinations), `app.pro` (the two files).
+
+`stats on|off`, `window full|windowed`, `sound on|off` and `disconnect`, one per line on the
+stream's stdin. A reader thread parses them and posts an SDL user event (`SDL_CODE_BEAM_CALL`,
+202); the session's thread applies it, so nothing touches the window, the renderer or the session
+from the reader. Each change -- a call, or the key combination that does the same -- is said as
+`beam: state <what> <value>`, and `disconnect` takes the quit combination's own path, so Beam
+hears `beam: ending` as it always has.
+
+`sound off` is its own switch rather than the session's `m_AudioMuted`: that one follows focus
+when "mute when not in front" is on, and a focus change would have turned the sound back on.
+`window` is upstream's `toggleFullscreen`, which on Windows rebuilds the decoder -- one blink.
+
+Beam's side: `viewer.rs` pipes the stream's stdin, `viewer_call` writes only the calls above
+(`VIEWER_CALLS`), and `parse_beam_status` gives `state` lines their own kind. Built and unit-tested
+2026-10-13; a live stream with each call is still to be run.
 
 ---
 

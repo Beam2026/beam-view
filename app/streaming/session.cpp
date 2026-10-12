@@ -1,5 +1,6 @@
 #include "session.h"
 #include "beamstatus.h"
+#include "beam/control.h"
 #include "settings/streamingpreferences.h"
 #include "streaming/streamutils.h"
 #include "backend/richpresencemanager.h"
@@ -2258,6 +2259,7 @@ void Session::exec()
     // Hijack this thread to be the SDL main thread. We have to do this
     // because we want to suspend all Qt processing until the stream is over.
     SDL_Event event;
+    BeamSessionControl::listen(); // BEAM: calls on stdin, applied in this loop (P16)
     for (;;) {
 #ifdef Q_OS_WIN32
         // In embedded mode our size follows the parent's client area
@@ -2324,6 +2326,9 @@ void Session::exec()
                 break;
             case SDL_CODE_BEAM_RAISE_WINDOW:
                 raiseWindow();
+                break;
+            case SDL_CODE_BEAM_CALL: // BEAM (P16)
+                BeamSessionControl::apply(this, event.user);
                 break;
             case SDL_CODE_FLUSH_WINDOW_EVENT_BARRIER:
                 m_FlushingWindowEventsRef--;

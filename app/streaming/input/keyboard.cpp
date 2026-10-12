@@ -1,4 +1,5 @@
 #include "streaming/session.h"
+#include "beam/control.h"
 
 #include <Limelight.h>
 #include "SDL_compat.h"
@@ -43,6 +44,7 @@ void SdlInputHandler::performSpecialKeyCombo(KeyCombo combo)
         SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION,
                     "Detected full-screen toggle combo");
         Session::s_ActiveSession->toggleFullscreen();
+        BeamSessionControl::reportWindow(Session::s_ActiveSession); // BEAM (P16)
 
         // Force raise all keys just be safe across this full-screen/windowed
         // transition just in case key events get lost.
@@ -56,6 +58,7 @@ void SdlInputHandler::performSpecialKeyCombo(KeyCombo combo)
         // Toggle the stats overlay
         Session::get()->getOverlayManager().setOverlayState(Overlay::OverlayDebug,
                                                             !Session::get()->getOverlayManager().isOverlayEnabled(Overlay::OverlayDebug));
+        BeamSessionControl::reportStats(Session::get()); // BEAM (P16)
         break;
 
     case KeyComboToggleMouseMode:

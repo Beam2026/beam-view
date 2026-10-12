@@ -1,4 +1,5 @@
 #include "../session.h"
+#include "beam/control.h"
 #include "renderers/renderer.h"
 
 #ifdef HAVE_SLAUDIO
@@ -183,7 +184,7 @@ void Session::arDecodeAndPlaySample(char* sampleData, int sampleLength)
     s_ActiveSession->m_AudioSampleCount++;
 
     // If audio is muted, don't decode or play the audio
-    if (s_ActiveSession->m_AudioMuted) {
+    if (s_ActiveSession->m_AudioMuted || BeamSessionControl::soundOff()) { // BEAM: `sound off` (P16)
         return;
     }
 

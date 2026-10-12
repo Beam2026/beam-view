@@ -427,6 +427,14 @@ int main(int argc, char *argv[])
 {
     SDL_SetMainReady();
 
+    // BEAM (P15): there is no front end. A bare start -- a double-click -- is refused before anything
+    // touches the disk: portable mode writes a log beside the exe when stderr is not redirected, and
+    // in Beam's dev tree that new file restarted Beam mid-session. See patches.md.
+    if (argc < 2) {
+        BeamStatus::noCommand();
+        return 1;
+    }
+
     // Set the app version for the QCommandLineParser's showVersion() command
     QCoreApplication::setApplicationVersion(VERSION_STR);
 
@@ -814,6 +822,14 @@ int main(int argc, char *argv[])
 
     GlobalCommandLineParser parser;
     GlobalCommandLineParser::ParseResult commandLineParserResult = parser.parse(app.arguments());
+
+    // BEAM (P15): options but no command -- Qt's own, such as -platform -- would open upstream's QML
+    // window below, which stays in the tree unreachable rather than deleted.
+    if (commandLineParserResult == GlobalCommandLineParser::NormalStartRequested) {
+        BeamStatus::noCommand();
+        return 1;
+    }
+
     switch (commandLineParserResult) {
     case GlobalCommandLineParser::ListRequested:
     case GlobalCommandLineParser::IdentityRequested:

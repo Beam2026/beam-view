@@ -174,6 +174,10 @@ beam: error <code> <text>    <- Beam renders this in its own words
 beam: ended <reason>         <- reason is "clean" or "error"; process exits after
 ```
 
+Started with no command, this program prints `beam: error 1 …` and exits 1 without opening any
+window (P15): there is no front end to reach. A command-line error -- an unknown command, a bad
+flag -- is also a `beam: error 1` line, followed by the help text on stderr.
+
 `<code>` is stable: 1 launch failed (host/app not found, validation), 2 connection stage failed,
 3 session error or abnormal termination, 4 pairing failed, 5 quit failed. `<text>` is
 human-readable and free to change. Exit code is 0 for a clean session, 1 otherwise.

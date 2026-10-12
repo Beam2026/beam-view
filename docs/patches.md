@@ -35,8 +35,8 @@ line count is a fair proxy for how much it will hurt:
 | File | Lines | What, and how exposed it is |
 | --- | --- | --- |
 | `app/streaming/session.cpp` | **172** | Embed window, geometry, focus. **The one to worry about** |
-| `app/main.cpp` | 39 | Settings identity, routing to the headless runners |
-| `app/cli/commandlineparser.cpp` | 23 | `--embed-hwnd` parsing |
+| `app/main.cpp` | 55 | Settings identity, routing to the headless runners, P15's refusal |
+| `app/cli/commandlineparser.cpp` | 27 | `--embed-hwnd` parsing, P15's `beam: error` |
 | `app/cli/pair.cpp` | 22 | Idempotent re-pair |
 | `app/backend/nvpairingmanager.cpp` | 4 | P6: pairing key taken as bytes, not a C string |
 | `app/app.pro` | 19 | Target name, new sources |
@@ -114,8 +114,9 @@ ships, and leaving both working is one less thing for a rebase to fight over.
 
 **Neither Beam icon is generated here.** Both are byte-identical copies from the Beam repo, which
 owns the artwork: `app/beam.ico` from `desktop/src-tauri/icons/icon.ico`, `app/res/beam.png` from
-`desktop/src-tauri/icons/128x128.png`. Refresh them by copying — last done 2026-10-06, for the
-redrawn prism (a straight beam, the spectrum starting inside it). Do **not** rasterise `beam.ico` out
+`desktop/src-tauri/icons/128x128.png`. Refresh them by copying — last done 2026-10-09, when Beam's
+icon set became generated from one drawing, `desktop/src-tauri/app-icon.svg`, which the app's own
+mark draws too. Do **not** rasterise `beam.ico` out
 of `res/beam.png` — that PNG is 128×128 and the committed `.ico` carries a 256×256 entry, so
 “regenerating” it would quietly downgrade the icon Windows shows at the largest size.
 `generate-ico.sh` says all of this in its header now; it used to say nothing and produce
@@ -453,6 +454,42 @@ before the decoder existed. Six sessions with it said otherwise: the decoder was
 first packet anyway, first packet to picture stayed at 0.35 s, and in one session the opening
 keyframe did not arrive whole -- with no request to recover, the picture waited 1.1 s for the next.
 The request is what recovers that, so it stays. The number P14 is not reused.
+
+## P15 — No front end to reach, 2026-10-12
+
+Step 1 of [`plan.md`](plan.md). `app/main.cpp`, right after the command line is parsed, and
+`showError` in `app/cli/commandlineparser.cpp`, each a one-line call into
+`BeamStatus::noCommand()` or `BeamStatus::error`. 20 lines added to upstream files, none removed.
+
+Started with no command -- double-clicked, or run bare -- upstream opened its QML window: the PC
+list, settings and all. Beam never starts it that way, so it is now refused before any window can
+exist: `beam: error 1 beam-view has no window of its own: Beam starts it with a command`, exit 1.
+`--help` and `--version` still print and exit. Every command-line error -- an unknown command, a
+bad flag, a missing host -- is now also a `beam: error 1` line on stdout, where Beam reads, rather
+than only help text on stderr.
+
+**Nothing was deleted.** `app/gui/`, `qml.qrc` and the QML engine stay in the tree and the build,
+unreachable, so a sync with upstream never meets a modify/delete conflict. The audit for any other
+way onto the screen found none outside `app/gui/`: no message box or dialog remains on the
+`identity`, `pair`, `quit` or `stream` paths.
+
+Leaving Qt Quick out of the build (the plan's 1c) is not done, and is not small: `session.cpp`
+(`Session::initialize(QQuickWindow*)`) and `streamingpreferences` (`QQmlEngine`) use it outside
+`app/gui/`, so dropping the modules means hooks in both. Worth it only if a measurement shows a
+smaller deploy or a faster start that matters.
+
+**Refused before anything touches the disk.** The first version refused after parsing, which is
+after portable mode (`portable.dat`, which Beam's copy has) writes a log file beside the exe --
+and it does that exactly when stderr is not redirected, which is a double-click. Double-clicked in
+Beam's dev tree, `desktop/src-tauri/resources/engines/beam-view/`, that new file was seen by
+`tauri dev`'s watcher, which rebuilt and restarted Beam and ended the session it was running
+(2026-10-12). No arguments at all is now refused at the top of `main`; the check after parsing
+stays for options with no command -- Qt's own, such as `-platform windows`, which pass the first. A release Beam has no watcher, and Beam always pipes stderr, so
+its own runs never write that file.
+
+Checked 2026-10-12 against the built exe: no arguments, as a double-click, exits 1 within a second
+with no window and writes no file beside the exe; `bogus` and `stream` with no host each print one `beam: error 1`; `--help` and
+`identity` are unchanged. A stream through Beam on two machines is still to be run.
 
 ---
 

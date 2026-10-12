@@ -195,6 +195,18 @@ keyboard lock|free      -> beam: state keyboard lock|free   Windows, Alt+Tab, Al
 disconnect              -> beam: ending                     the quit key combination's own path
 ```
 
+Upstream's own toggles, which no call makes, are reported too, so the log has every change:
+
+```text
+beam: state capture on|off            input sent to the host or not: Ctrl+Alt+Shift+Z, a click back
+                                      into the stream, focus going elsewhere -- once per real change
+beam: state mouse-mode game|desktop   Ctrl+Alt+Shift+M
+beam: state cursor show|hide          Ctrl+Alt+Shift+C, in desktop mouse mode
+beam: state window minimized          Ctrl+Alt+Shift+D
+beam: state mouse lock|free           Ctrl+Alt+Shift+L, as well as the call
+beam: state stats / window …          Ctrl+Alt+Shift+S and Ctrl+Alt+Shift+X, as well as the calls
+```
+
 Anything else is answered with `beam: warning unknown call: …` and changes nothing; a closed stdin
 changes nothing. Beam's `viewer_call` writes only these lines -- `VIEWER_CALLS` in `viewer.rs`,
 which a test there checks against `app/beam/control.cpp` when this repo sits beside Beam's.

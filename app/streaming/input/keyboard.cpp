@@ -73,6 +73,7 @@ void SdlInputHandler::performSpecialKeyCombo(KeyCombo combo)
 
         // Recapture input
         setCaptureActive(true);
+        BeamSessionControl::reportMouseMode(m_AbsoluteMouseMode); // BEAM (P16)
         break;
 
     case KeyComboToggleCursorHide:
@@ -82,6 +83,7 @@ void SdlInputHandler::performSpecialKeyCombo(KeyCombo combo)
         if (!SDL_GetRelativeMouseMode()) {
             m_MouseCursorCapturedVisibilityState = !m_MouseCursorCapturedVisibilityState;
             SDL_ShowCursor(m_MouseCursorCapturedVisibilityState);
+            BeamSessionControl::reportCursor(m_MouseCursorCapturedVisibilityState); // BEAM (P16)
         }
         else {
             SDL_LogWarn(SDL_LOG_CATEGORY_APPLICATION,
@@ -93,6 +95,7 @@ void SdlInputHandler::performSpecialKeyCombo(KeyCombo combo)
         SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION,
                     "Detected minimize combo");
         SDL_MinimizeWindow(m_Window);
+        BeamSessionControl::reportMinimized(); // BEAM (P16)
         break;
 
     case KeyComboPasteText:

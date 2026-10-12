@@ -24,6 +24,9 @@ enum Call : intptr_t {
 
 std::atomic<bool> s_SoundOff{false};
 
+// The capture last said, so setCaptureActive repeating itself says nothing. Starts unknown (-1).
+std::atomic<int> s_ReportedCapture{-1};
+
 // A call is one short line; anything longer is not one, and is read past rather than split.
 constexpr int kMaxLine = 128;
 
@@ -200,6 +203,29 @@ void BeamSessionControl::reportStats(Session* session)
 void BeamSessionControl::reportMouse(Session* session)
 {
     BeamStatus::state("mouse", lockFree(session->m_InputHandler->m_PointerRegionLockActive));
+}
+
+void BeamSessionControl::reportCapture(bool active)
+{
+    const int now = active ? 1 : 0;
+    if (s_ReportedCapture.exchange(now) != now) {
+        BeamStatus::state("capture", onOff(active));
+    }
+}
+
+void BeamSessionControl::reportMouseMode(bool absolute)
+{
+    BeamStatus::state("mouse-mode", absolute ? "desktop" : "game");
+}
+
+void BeamSessionControl::reportCursor(bool shown)
+{
+    BeamStatus::state("cursor", shown ? "show" : "hide");
+}
+
+void BeamSessionControl::reportMinimized()
+{
+    BeamStatus::state("window", "minimized");
 }
 
 void BeamSessionControl::reportWindow(Session* session)

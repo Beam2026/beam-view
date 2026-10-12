@@ -496,10 +496,11 @@ first frame and ended cleanly.
 ## P16 — Calls on stdin while a stream runs, 2026-10-13
 
 Step 2 of [`plan.md`](plan.md); the contract is in [`beam-integration.md`](beam-integration.md).
-New in `app/beam/control.{h,cpp}` (`BeamSessionControl`). Hooks in upstream files, 17 lines, one
+New in `app/beam/control.{h,cpp}` (`BeamSessionControl`). Hooks in upstream files, 22 lines, one
 changed: `session.h` (a `friend`), `session.cpp` (start the reader before the event loop, apply a
-call in it), `audio.cpp` (`sound off` skips playback), `keyboard.cpp` (report the stats,
-full-screen and pointer-lock key combinations), `input.h` (a `friend`, for the two locks), `app.pro` (the two files).
+call in it), `audio.cpp` (`sound off` skips playback), `keyboard.cpp` (report every toggle
+key combination), `input.h` (a `friend`, for the two locks), `input.cpp` (report every capture
+change, at the end of `setCaptureActive`), `app.pro` (the two files).
 
 `stats on|off`, `window full|windowed`, `sound on|off`, `mouse lock|free`, `keyboard lock|free` and
 `disconnect`, one per line on the
@@ -520,6 +521,11 @@ between `CSK_ALWAYS` and `CSK_OFF`: Windows, Alt+Tab and Alt+F4 go to the host o
 every other key reaches the stream either way. A first version had one `input capture|release`
 for both, as `Ctrl+Alt+Shift+Z` does it; release there also stops sending input at all, which is
 not a lock.
+
+**Every toggle is logged.** Calls are answered with their `beam: state`, and upstream's own
+toggles that no call makes -- capture (`Ctrl+Alt+Shift+Z`, a click back into the stream, focus),
+mouse mode, cursor, minimise, pointer lock, stats, full screen -- report theirs too. Beam writes
+every `beam:` line to the client log, and each call it sends as `told beam-view: …`.
 
 Beam's side: `viewer.rs` pipes the stream's stdin, `viewer_call` writes only the calls above
 (`VIEWER_CALLS`), and `parse_beam_status` gives `state` lines their own kind. Checked live on

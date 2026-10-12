@@ -44,6 +44,17 @@ public:
 
     static void reportMouse(Session* session);
 
+    // Upstream's own toggles, which no call makes, said so the log has every change:
+    //   capture on|off         input sent to the host, or not (Ctrl+Alt+Shift+Z, a click back into
+    //                          the stream, focus going elsewhere) -- once per actual change
+    //   mouse-mode game|desktop  relative or absolute mouse (Ctrl+Alt+Shift+M)
+    //   cursor show|hide       the local cursor in desktop mouse mode (Ctrl+Alt+Shift+C)
+    //   window minimized       the stream window minimised (Ctrl+Alt+Shift+D)
+    static void reportCapture(bool active);
+    static void reportMouseMode(bool absolute);
+    static void reportCursor(bool shown);
+    static void reportMinimized();
+
 private:
     static bool isFullScreen(Session* session);
 };

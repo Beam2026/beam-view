@@ -1,4 +1,5 @@
 #include "streaming/session.h"
+#include "beam/control.h"
 
 #include <Limelight.h>
 #include "SDL_compat.h"
@@ -43,6 +44,7 @@ void SdlInputHandler::performSpecialKeyCombo(KeyCombo combo)
         SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION,
                     "Detected full-screen toggle combo");
         Session::s_ActiveSession->toggleFullscreen();
+        BeamSessionControl::reportWindow(Session::s_ActiveSession); // BEAM (P16)
 
         // Force raise all keys just be safe across this full-screen/windowed
         // transition just in case key events get lost.
@@ -56,6 +58,7 @@ void SdlInputHandler::performSpecialKeyCombo(KeyCombo combo)
         // Toggle the stats overlay
         Session::get()->getOverlayManager().setOverlayState(Overlay::OverlayDebug,
                                                             !Session::get()->getOverlayManager().isOverlayEnabled(Overlay::OverlayDebug));
+        BeamSessionControl::reportStats(Session::get()); // BEAM (P16)
         break;
 
     case KeyComboToggleMouseMode:
@@ -70,6 +73,7 @@ void SdlInputHandler::performSpecialKeyCombo(KeyCombo combo)
 
         // Recapture input
         setCaptureActive(true);
+        BeamSessionControl::reportMouseMode(m_AbsoluteMouseMode); // BEAM (P16)
         break;
 
     case KeyComboToggleCursorHide:
@@ -79,6 +83,7 @@ void SdlInputHandler::performSpecialKeyCombo(KeyCombo combo)
         if (!SDL_GetRelativeMouseMode()) {
             m_MouseCursorCapturedVisibilityState = !m_MouseCursorCapturedVisibilityState;
             SDL_ShowCursor(m_MouseCursorCapturedVisibilityState);
+            BeamSessionControl::reportCursor(m_MouseCursorCapturedVisibilityState); // BEAM (P16)
         }
         else {
             SDL_LogWarn(SDL_LOG_CATEGORY_APPLICATION,
@@ -90,6 +95,7 @@ void SdlInputHandler::performSpecialKeyCombo(KeyCombo combo)
         SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION,
                     "Detected minimize combo");
         SDL_MinimizeWindow(m_Window);
+        BeamSessionControl::reportMinimized(); // BEAM (P16)
         break;
 
     case KeyComboPasteText:
@@ -137,6 +143,7 @@ void SdlInputHandler::performSpecialKeyCombo(KeyCombo combo)
 
         // Apply the new region lock
         updatePointerRegionLock();
+        BeamSessionControl::reportMouse(Session::get()); // BEAM (P16)
         break;
 
     case KeyComboQuitAndExit:

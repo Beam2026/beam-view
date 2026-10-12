@@ -9,6 +9,7 @@
 //   beam: connecting
 //   beam: first-frame
 //   beam: warning <text>
+//   beam: state <what> <value>
 //   beam: error <code> <text>
 //   beam: ended <reason>
 //
@@ -55,6 +56,10 @@ void ending();
 // encode, surround the audio device cannot play, HDR the GPU cannot decode. Headless, these were
 // queued for a dialog that never shows, so the fallback happened with no word to anyone (P11).
 void warning(const QString& text);
+
+// What the stream is doing now, after a call or a key combination changed it (P16):
+// `beam: state <what> <value>`, such as `state sound off`.
+void state(const QString& what, const QString& value);
 
 // This install's client certificate, base64 of its PEM: what a host trusts for a session instead of
 // pairing (P12). Public -- the private key never leaves this machine.

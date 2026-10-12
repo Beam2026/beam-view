@@ -169,6 +169,7 @@ beam: connecting             <- emitted when the stream command starts work
 beam: first-frame            <- first video frame on screen in this window; hide Beam now
 beam: ending                 <- the user asked to end the stream; end the session now, do not wait for exit
 beam: warning <text>         <- a setting this session could not honour, and what it does instead (P11)
+beam: state <what> <value>   <- what the stream is doing now, after a call or a key combination (P16)
 beam: identity <base64>      <- `identity` only: this install's certificate, PEM, base64 (P12)
 beam: error <code> <text>    <- Beam renders this in its own words
 beam: ended <reason>         <- reason is "clean" or "error"; process exits after
@@ -177,6 +178,41 @@ beam: ended <reason>         <- reason is "clean" or "error"; process exits afte
 Started with no command, this program prints `beam: error 1 …` and exits 1 without opening any
 window (P15): there is no front end to reach. A command-line error -- an unknown command, a bad
 flag -- is also a `beam: error 1` line, followed by the help text on stderr.
+
+**Calls on stdin while a stream runs (P16).** `stream`'s stdin is a pipe Beam writes to, one call
+per line, and every change -- a call, or `Ctrl+Alt+Shift+S` / `Ctrl+Alt+Shift+X` -- is answered
+with a `beam: state` line. The two locks are independent -- both, either or neither -- and every
+other key reaches the stream either way. A stream starts with the keyboard locked
+(`--capture-system-keys always`) and the mouse as upstream sets it for the window mode; once a
+call or `Ctrl+Alt+Shift+L` sets the mouse lock, changing the window mode leaves it alone:
+
+```text
+stats on|off            -> beam: state stats on|off         the performance overlay
+window full|windowed    -> beam: state window full|windowed upstream's toggle; the picture blinks once
+sound on|off            -> beam: state sound on|off         this PC playing the stream's audio
+mouse lock|free         -> beam: state mouse lock|free      the cursor kept inside the stream window, or free to leave
+keyboard lock|free      -> beam: state keyboard lock|free   Windows, Alt+Tab, Alt+F4 sent to the host, or kept here
+disconnect              -> beam: ending                     the quit key combination's own path
+```
+
+With the keyboard free, Alt+F4 is this PC's again -- and the stream is the window in front, so it
+closes the stream and the session ends (`beam: ending`), as closing any window would.
+
+Upstream's own toggles, which no call makes, are reported too, so the log has every change:
+
+```text
+beam: state capture on|off            input sent to the host or not: Ctrl+Alt+Shift+Z, a click back
+                                      into the stream, focus going elsewhere -- once per real change
+beam: state mouse-mode game|desktop   Ctrl+Alt+Shift+M
+beam: state cursor show|hide          Ctrl+Alt+Shift+C, in desktop mouse mode
+beam: state window minimized          Ctrl+Alt+Shift+D
+beam: state mouse lock|free           Ctrl+Alt+Shift+L, as well as the call
+beam: state stats / window …          Ctrl+Alt+Shift+S and Ctrl+Alt+Shift+X, as well as the calls
+```
+
+Anything else is answered with `beam: warning unknown call: …` and changes nothing; a closed stdin
+changes nothing. Beam's `viewer_call` writes only these lines -- `VIEWER_CALLS` in `viewer.rs`,
+which a test there checks against `app/beam/control.cpp` when this repo sits beside Beam's.
 
 `<code>` is stable: 1 launch failed (host/app not found, validation), 2 connection stage failed,
 3 session error or abnormal termination, 4 pairing failed, 5 quit failed. `<text>` is

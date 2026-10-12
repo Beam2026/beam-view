@@ -34,13 +34,14 @@ line count is a fair proxy for how much it will hurt:
 
 | File | Lines | What, and how exposed it is |
 | --- | --- | --- |
-| `app/streaming/session.cpp` | **172** | Embed window, geometry, focus. **The one to worry about** |
+| `app/streaming/session.cpp` | **177** | Embed window, geometry, focus; P16's two calls. **The one to worry about** |
 | `app/main.cpp` | 55 | Settings identity, routing to the headless runners, P15's refusal |
 | `app/cli/commandlineparser.cpp` | 27 | `--embed-hwnd` parsing, P15's `beam: error` |
 | `app/cli/pair.cpp` | 22 | Idempotent re-pair |
 | `app/backend/nvpairingmanager.cpp` | 4 | P6: pairing key taken as bytes, not a C string |
-| `app/app.pro` | 19 | Target name, new sources |
-| `app/streaming/session.h` | 12 | Embed members |
+| `app/app.pro` | 21 | Target name, new sources |
+| `app/streaming/session.h` | 13 | Embed members, P16's `friend` |
+| `app/streaming/audio/audio.cpp`, `input/keyboard.cpp` | 2, 3 | P16: `sound off`; the key combinations reported |
 | `pacer/pacer.cpp` | **5** | One call to `BeamStatus::firstFrame()` |
 | `cli/{listapps,quitstream,startstream}.cpp` | 2 each | Message wording |
 | `app/qml.qrc`, `Moonlight.exe.manifest` | 3, 1 | Removed QML, description |
@@ -489,7 +490,52 @@ its own runs never write that file.
 
 Checked 2026-10-12 against the built exe: no arguments, as a double-click, exits 1 within a second
 with no window and writes no file beside the exe; `bogus` and `stream` with no host each print one `beam: error 1`; `--help` and
-`identity` are unchanged. A stream through Beam on two machines is still to be run.
+`identity` are unchanged. Three streams through Beam on two machines on 2026-10-12 reached their
+first frame and ended cleanly.
+
+## P16 — Calls on stdin while a stream runs, 2026-10-13
+
+Step 2 of [`plan.md`](plan.md); the contract is in [`beam-integration.md`](beam-integration.md).
+New in `app/beam/control.{h,cpp}` (`BeamSessionControl`). Hooks in upstream files, 22 lines, one
+changed: `session.h` (a `friend`), `session.cpp` (start the reader before the event loop, apply a
+call in it), `audio.cpp` (`sound off` skips playback), `keyboard.cpp` (report every toggle
+key combination), `input.h` (a `friend`, for the two locks), `input.cpp` (report every capture
+change, at the end of `setCaptureActive`), `app.pro` (the two files).
+
+`stats on|off`, `window full|windowed`, `sound on|off`, `mouse lock|free`, `keyboard lock|free` and
+`disconnect`, one per line on the
+stream's stdin. A reader thread parses them and posts an SDL user event (`SDL_CODE_BEAM_CALL`,
+202); the session's thread applies it, so nothing touches the window, the renderer or the session
+from the reader. Each change -- a call, or the key combination that does the same -- is said as
+`beam: state <what> <value>`, and `disconnect` takes the quit combination's own path, so Beam
+hears `beam: ending` as it always has.
+
+`sound off` is its own switch rather than the session's `m_AudioMuted`: that one follows focus
+when "mute when not in front" is on, and a focus change would have turned the sound back on.
+`window` is upstream's `toggleFullscreen`, which on Windows rebuilds the decoder -- one blink.
+
+The mouse and the keyboard lock separately, so a person can have both, either or neither. `mouse`
+is upstream's pointer region lock (the cursor cannot leave the window), marked as the person's
+choice so a window-mode change no longer resets it. `keyboard` is the keyboard grab, switched
+between `CSK_ALWAYS` and `CSK_OFF`: Windows, Alt+Tab and Alt+F4 go to the host or stay here, and
+every other key reaches the stream either way. A first version had one `input capture|release`
+for both, as `Ctrl+Alt+Shift+Z` does it; release there also stops sending input at all, which is
+not a lock.
+
+**Every toggle is logged.** Calls are answered with their `beam: state`, and upstream's own
+toggles that no call makes -- capture (`Ctrl+Alt+Shift+Z`, a click back into the stream, focus),
+mouse mode, cursor, minimise, pointer lock, stats, full screen -- report theirs too. Beam writes
+every `beam:` line to the client log, and each call it sends as `told beam-view: …`.
+
+Beam's side: `viewer.rs` pipes the stream's stdin, `viewer_call` writes only the calls above
+(`VIEWER_CALLS`), and `parse_beam_status` gives `state` lines their own kind. Checked live on
+2026-10-13, from Beam on two machines: `stats on`/`off`, `window windowed` (0.9 s, the decoder
+rebuilt), `sound off`/`on` and `disconnect` (`beam: ending`, session over 0.1 s later) were each
+answered with their `beam: state`. A second session the same night, on the build with the
+separate locks and every toggle reported, checked every call -- `window full`, `mouse lock`/`free` and
+`keyboard lock`/`free` among them -- and the S, X, L, C, Z and D combinations, a click back into the
+stream, and `capture on` at the stream's start. Not yet seen: `Ctrl+Alt+Shift+M`, which never
+reached beam-view in that session.
 
 ---
 

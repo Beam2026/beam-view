@@ -1,6 +1,7 @@
 #include <Limelight.h>
 #include "SDL_compat.h"
 #include "streaming/session.h"
+#include "beam/control.h"
 #include "settings/mappingmanager.h"
 #include "path.h"
 #include "utils.h"
@@ -441,6 +442,8 @@ void SdlInputHandler::setCaptureActive(bool active)
 
     // Now update the keyboard grab
     updateKeyboardGrabState();
+
+    BeamSessionControl::reportCapture(active); // BEAM: every capture change, whoever made it (P16)
 }
 
 void SdlInputHandler::handleTouchFingerEvent(SDL_TouchFingerEvent* event)

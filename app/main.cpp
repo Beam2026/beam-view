@@ -814,6 +814,17 @@ int main(int argc, char *argv[])
 
     GlobalCommandLineParser parser;
     GlobalCommandLineParser::ParseResult commandLineParserResult = parser.parse(app.arguments());
+
+    // BEAM (P15): there is no front end to reach. Started with no command -- double-clicked, say --
+    // upstream opened its QML window here. Beam starts this program with a command every time, so
+    // anything else is refused before a window of any kind can exist. The QML files stay in the
+    // tree, unused, so a sync with upstream never meets a deleted file.
+    if (commandLineParserResult == GlobalCommandLineParser::NormalStartRequested) {
+        BeamStatus::error(BeamStatus::ErrorLaunchFailed,
+                          "beam-view has no window of its own: Beam starts it with a command");
+        return 1;
+    }
+
     switch (commandLineParserResult) {
     case GlobalCommandLineParser::ListRequested:
     case GlobalCommandLineParser::IdentityRequested:

@@ -35,8 +35,8 @@ line count is a fair proxy for how much it will hurt:
 | File | Lines | What, and how exposed it is |
 | --- | --- | --- |
 | `app/streaming/session.cpp` | **172** | Embed window, geometry, focus. **The one to worry about** |
-| `app/main.cpp` | 39 | Settings identity, routing to the headless runners |
-| `app/cli/commandlineparser.cpp` | 23 | `--embed-hwnd` parsing |
+| `app/main.cpp` | 50 | Settings identity, routing to the headless runners, P15's refusal |
+| `app/cli/commandlineparser.cpp` | 27 | `--embed-hwnd` parsing, P15's `beam: error` |
 | `app/cli/pair.cpp` | 22 | Idempotent re-pair |
 | `app/backend/nvpairingmanager.cpp` | 4 | P6: pairing key taken as bytes, not a C string |
 | `app/app.pro` | 19 | Target name, new sources |
@@ -454,6 +454,32 @@ before the decoder existed. Six sessions with it said otherwise: the decoder was
 first packet anyway, first packet to picture stayed at 0.35 s, and in one session the opening
 keyframe did not arrive whole -- with no request to recover, the picture waited 1.1 s for the next.
 The request is what recovers that, so it stays. The number P14 is not reused.
+
+## P15 — No front end to reach, 2026-10-12
+
+Step 1 of [`plan.md`](plan.md). `app/main.cpp`, right after the command line is parsed, and
+`showError` in `app/cli/commandlineparser.cpp`. 15 lines added to upstream files, none removed.
+
+Started with no command -- double-clicked, or run bare -- upstream opened its QML window: the PC
+list, settings and all. Beam never starts it that way, so it is now refused before any window can
+exist: `beam: error 1 beam-view has no window of its own: Beam starts it with a command`, exit 1.
+`--help` and `--version` still print and exit. Every command-line error -- an unknown command, a
+bad flag, a missing host -- is now also a `beam: error 1` line on stdout, where Beam reads, rather
+than only help text on stderr.
+
+**Nothing was deleted.** `app/gui/`, `qml.qrc` and the QML engine stay in the tree and the build,
+unreachable, so a sync with upstream never meets a modify/delete conflict. The audit for any other
+way onto the screen found none outside `app/gui/`: no message box or dialog remains on the
+`identity`, `pair`, `quit` or `stream` paths.
+
+Leaving Qt Quick out of the build (the plan's 1c) is not done, and is not small: `session.cpp`
+(`Session::initialize(QQuickWindow*)`) and `streamingpreferences` (`QQmlEngine`) use it outside
+`app/gui/`, so dropping the modules means hooks in both. Worth it only if a measurement shows a
+smaller deploy or a faster start that matters.
+
+Checked 2026-10-12 against the built exe: no arguments, as a double-click, exits 1 within a second
+with no window; `bogus` and `stream` with no host each print one `beam: error 1`; `--help` and
+`identity` are unchanged. A stream through Beam on two machines is still to be run.
 
 ---
 

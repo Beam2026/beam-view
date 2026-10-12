@@ -1,4 +1,5 @@
 #include "commandlineparser.h"
+#include "beamstatus.h"
 
 #include <QCommandLineParser>
 #include <QRegularExpression>
@@ -71,6 +72,9 @@ public:
 
     [[ noreturn ]] void showError(QString message) const
     {
+        // BEAM (P15): said on stdout as well, where Beam reads, rather than only in the help text
+        // on stderr -- an unknown command or a bad flag is a launch failure like any other.
+        BeamStatus::error(BeamStatus::ErrorLaunchFailed, message);
         showMessage(message + "\n\n" + helpText(), Error);
         exit(1);
     }

@@ -30,7 +30,8 @@ These keep the cost of syncing with upstream where it is today.
    unreachable or left out of the build, never removed, so a sync never meets a modify/delete
    conflict.
 2. **New behaviour lives in new files**, under `app/beam/`. Upstream has never heard of them, so they
-   never conflict. A change to an upstream file is the smallest hook that calls into `app/beam/`,
+   never conflict. (Beam's existing files -- `beamstatus`, `cli/headless` -- stay where they are;
+   [`patches.md`](patches.md) says why moving them would only add churn.) A change to an upstream file is the smallest hook that calls into `app/beam/`,
    marked `// BEAM:` like the existing ones.
 3. **One step, one patch** (P15 onwards), each with an entry in [`patches.md`](patches.md) and its
    lines added to the "Files Beam modified" table there.
@@ -48,7 +49,7 @@ its one drawing). Merge it into `beam`, and branch each step from `beam`.
 
 ---
 
-## Step 1 -- No front end to reach (P15)
+## Step 1 -- No front end to reach (P15) -- **1a and 1b done 2026-10-12**
 
 Today, `beam-view.exe` started with no command, or double-clicked, opens Moonlight's QML window
 (`NormalStartRequested` in `app/main.cpp` loads `qrc:/gui/main.qml`).
@@ -61,6 +62,8 @@ Today, `beam-view.exe` started with no command, or double-clicked, opens Moonlig
 - **1c. Out of the build, optionally.** A `beam_headless` switch in `app/app.pro` that leaves out
   `qml.qrc`, `app/gui/*.cpp` and the Qt Quick modules -- added as new conditional blocks, nothing
   deleted. Worth it only if it measurably shrinks the deploy or the start time; measure first.
+  Not small: `session.cpp` and `streamingpreferences` use Qt Quick outside `app/gui/` (see P15).
+  **Not done.**
 
 **Gate:** double-clicking `beam-view.exe`, or running it with no arguments or an unknown command,
 puts nothing on screen and prints one `beam: error`. `identity`, `pair`, `quit` and `stream` behave

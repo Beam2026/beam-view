@@ -513,8 +513,10 @@ when "mute when not in front" is on, and a focus change would have turned the so
 `window` is upstream's `toggleFullscreen`, which on Windows rebuilds the decoder -- one blink.
 
 Beam's side: `viewer.rs` pipes the stream's stdin, `viewer_call` writes only the calls above
-(`VIEWER_CALLS`), and `parse_beam_status` gives `state` lines their own kind. Built and unit-tested
-2026-10-13; a live stream with each call is still to be run.
+(`VIEWER_CALLS`), and `parse_beam_status` gives `state` lines their own kind. Checked live on
+2026-10-13, from Beam on two machines: `stats on`/`off`, `window windowed` (0.9 s, the decoder
+rebuilt), `sound off`/`on` and `disconnect` (`beam: ending`, session over 0.1 s later) were each
+answered with their `beam: state`. Not yet seen: `window full`, and the two key combinations' reports.
 
 ---
 

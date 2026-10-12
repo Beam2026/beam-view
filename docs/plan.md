@@ -69,7 +69,8 @@ Today, `beam-view.exe` started with no command, or double-clicked, opens Moonlig
 puts nothing on screen and prints one `beam: error`. `identity`, `pair`, `quit` and `stream` behave
 as before.
 
-## Step 2 -- Calls while a stream runs (P16) -- **built 2026-10-13, live check pending**
+## Step 2 -- Calls while a stream runs (P16) -- **passed live 2026-10-13** (`window full` and the key
+combinations' reports still to be seen)
 
 Beam started beam-view with stdin closed (`viewer.rs`, `Stdio::null()`). The stream's stdin is now
 a pipe, and Beam writes one call per line:

@@ -4,6 +4,9 @@ Guidance for Claude Code (claude.ai/code) working in this repository.
 
 > **Asked to build, run or change this?** Read [`docs/building.md`](docs/building.md) first — the
 > build has two traps on a normal dev machine and neither produces an obvious error.
+>
+> **What comes next** is [`docs/plan.md`](docs/plan.md): the steps that make this program Beam's
+> session surface, and the rules every one of them follows (no upstream code deleted).
 
 ## What this is
 

@@ -181,12 +181,14 @@ flag -- is also a `beam: error 1` line, followed by the help text on stderr.
 
 **Calls on stdin while a stream runs (P16).** `stream`'s stdin is a pipe Beam writes to, one call
 per line, and every change -- a call, or `Ctrl+Alt+Shift+S` / `Ctrl+Alt+Shift+X` -- is answered
-with a `beam: state` line:
+with a `beam: state` line. `input` is also reported whenever the capture changes by itself -- a
+click back into the stream, focus going elsewhere, `Ctrl+Alt+Shift+Z`:
 
 ```text
 stats on|off            -> beam: state stats on|off         the performance overlay
 window full|windowed    -> beam: state window full|windowed upstream's toggle; the picture blinks once
 sound on|off            -> beam: state sound on|off         this PC playing the stream's audio
+input capture|release   -> beam: state input capture|release the window holds the mouse and keyboard, or lets go
 disconnect              -> beam: ending                     the quit key combination's own path
 ```
 

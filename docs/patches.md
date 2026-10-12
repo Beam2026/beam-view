@@ -496,12 +496,13 @@ first frame and ended cleanly.
 ## P16 — Calls on stdin while a stream runs, 2026-10-13
 
 Step 2 of [`plan.md`](plan.md); the contract is in [`beam-integration.md`](beam-integration.md).
-New in `app/beam/control.{h,cpp}` (`BeamSessionControl`). Hooks in upstream files, 13 lines, one
+New in `app/beam/control.{h,cpp}` (`BeamSessionControl`). Hooks in upstream files, 16 lines, one
 changed: `session.h` (a `friend`), `session.cpp` (start the reader before the event loop, apply a
 call in it), `audio.cpp` (`sound off` skips playback), `keyboard.cpp` (report the stats and
-full-screen key combinations), `app.pro` (the two files).
+full-screen key combinations), `input.cpp` (report every input capture change, at the end of
+`setCaptureActive`), `app.pro` (the two files).
 
-`stats on|off`, `window full|windowed`, `sound on|off` and `disconnect`, one per line on the
+`stats on|off`, `window full|windowed`, `sound on|off`, `input capture|release` and `disconnect`, one per line on the
 stream's stdin. A reader thread parses them and posts an SDL user event (`SDL_CODE_BEAM_CALL`,
 202); the session's thread applies it, so nothing touches the window, the renderer or the session
 from the reader. Each change -- a call, or the key combination that does the same -- is said as

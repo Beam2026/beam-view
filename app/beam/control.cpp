@@ -17,10 +17,15 @@ enum Call : intptr_t {
     CallStats,
     CallWindow,
     CallSound,
+    CallInput,
     CallDisconnect,
 };
 
 std::atomic<bool> s_SoundOff{false};
+
+// The capture last reported, so a repeated setCaptureActive with no change says nothing. Starts
+// unknown (-1): the first report always goes out.
+std::atomic<int> s_ReportedCapture{-1};
 
 // A call is one short line; anything longer is not one, and is read past rather than split.
 constexpr int kMaxLine = 128;
@@ -67,6 +72,9 @@ void parse(const QString& line)
     }
     else if (what == "sound" && choice(value, "on", "off", on)) {
         post(CallSound, on);
+    }
+    else if (what == "input" && choice(value, "capture", "release", on)) {
+        post(CallInput, on);
     }
     else if (what == "disconnect" && words.size() == 1) {
         post(CallDisconnect, true);
@@ -143,6 +151,21 @@ void BeamSessionControl::apply(Session* session, const SDL_UserEvent& event)
         BeamStatus::state("sound", onOff(on));
         break;
 
+    case CallInput:
+        // Ctrl+Alt+Shift+Z's own steps: the handler grabs or lets go of both mouse and keyboard, and
+        // on letting go raises every key so none stays down on the host. It reports the change.
+        if (session->m_InputHandler->isCaptureActive() != on) {
+            session->m_InputHandler->setCaptureActive(on);
+            if (!on) {
+                session->m_InputHandler->raiseAllKeys();
+            }
+        }
+        else {
+            // Already so: nothing changed to report, but every call is answered.
+            BeamStatus::state("input", on ? "capture" : "release");
+        }
+        break;
+
     case CallDisconnect: {
         // The quit key combination's own path, so Beam hears `beam: ending` as it does for that.
         SDL_Event quit = {};
@@ -162,6 +185,13 @@ bool BeamSessionControl::soundOff()
 void BeamSessionControl::reportStats(Session* session)
 {
     BeamStatus::state("stats", onOff(session->getOverlayManager().isOverlayEnabled(Overlay::OverlayDebug)));
+}
+
+void BeamSessionControl::reportInput(bool captured)
+{
+    if (s_ReportedCapture.exchange(captured ? 1 : 0) != (captured ? 1 : 0)) {
+        BeamStatus::state("input", captured ? "capture" : "release");
+    }
 }
 
 void BeamSessionControl::reportWindow(Session* session)

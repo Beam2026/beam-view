@@ -10,7 +10,7 @@ struct SDL_Window;
 //   decode         this PC cannot decode a frame in a frame's time   (gpu-decode)
 //   encode         their PC cannot encode a frame in a frame's time  (gpu-encode)
 //   gamepad-mouse  a controller has just started driving the mouse   (gamepad, for 5 s)
-//                  or just stopped                                   (the same, red, for 5 s)
+//                  or just stopped                                   (the same, on a red tile, 5 s)
 //
 // The three warnings pulse slowly; the controller, a mode rather than a problem, stays steady. A
 // warning appears after three bad seconds and goes after three good ones, so one bad moment does

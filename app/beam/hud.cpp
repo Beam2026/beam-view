@@ -27,7 +27,7 @@ const char* const kIconFiles[SlotCount] = {
     ":/res/hud/beam-hud-gpu-decode.svg",
     ":/res/hud/beam-hud-gpu-encode.svg",
     ":/res/hud/beam-hud-gamepad.svg",
-    ":/res/hud/beam-hud-gamepad.svg",  // drawn red: see redden()
+    ":/res/hud/beam-hud-gamepad.svg",  // on a red tile
 };
 
 constexpr int kGrid = 24;            // the icons' grid
@@ -36,6 +36,7 @@ constexpr int kTileGap = 6;          // between tiles, in grid cells
 constexpr int kTileRadius = 6;       // the tile's rounded corners, in grid cells
 constexpr int kMargin = 8;           // from the screen's corner, in grid cells
 const SDL_Color kChampagne = {241, 221, 191, 128};  // the tile: champagne at half opacity
+const SDL_Color kRed = {255, 95, 109, 128};        // the controller's tile as its mode turns off
 
 constexpr Uint32 kRedrawMs = 125;    // eight redraws a second, enough for a slow pulse
 constexpr Uint32 kPulseMs = 2000;    // one pulse, dim to bright to dim
@@ -104,16 +105,6 @@ Icon loadIcon(const char* path)
                             rect.captured(3).toInt(), rect.captured(4).toInt(),
                             Uint8(rgb >> 16), Uint8(rgb >> 8), Uint8(rgb)});
         }
-    }
-    return icon;
-}
-
-// The controller as the mode turns off: its body in the two reds of the network icon's bar.
-Icon redden(Icon icon)
-{
-    for (Cell& c : icon) {
-        if (c.r == 0xec && c.g == 0xe5 && c.b == 0xd6) { c.r = 0xff; c.g = 0x5f; c.b = 0x6d; }
-        else if (c.r == 0xbf && c.g == 0xb7 && c.b == 0xa8) { c.r = 0xc2; c.g = 0x41; c.b = 0x4d; }
     }
     return icon;
 }
@@ -190,7 +181,7 @@ SDL_Surface* compose(const std::vector<Slot>& onScreen, Uint32 now)
         const int x0 = kMargin * s + i * (tile + kTileGap * s);
         const int y0 = kMargin * s;
 
-        roundedTile(x0, y0, tile, kTileRadius * s, kChampagne, alpha);
+        roundedTile(x0, y0, tile, kTileRadius * s, onScreen[i] == SlotGamepadOff ? kRed : kChampagne, alpha);
 
         // The icon, each cell a whole number of pixels.
         const int ix = x0 + kTilePadding * s;
@@ -243,7 +234,6 @@ void begin(SDL_Window* window, bool warnings)
         for (int i = 0; i < SlotCount; i++) {
             s_Icons[i] = loadIcon(kIconFiles[i]);
         }
-        s_Icons[SlotGamepadOff] = redden(s_Icons[SlotGamepadOff]);
     }
     // 48 pixels on a 1080-line screen, 72 on 1440, 96 on 4K: whole multiples of the 24-cell grid.
     s_Scale = SDL_max(1, (int)std::lround(screenHeight / 540.0));

@@ -32,7 +32,8 @@ constexpr double kGap = 10, kListWidth = 340, kSubWidth = 230, kPad = 6, kRadius
 constexpr double kHeadingH = 30, kStatsH = 58, kRowH = 40, kRowRadius = 6, kIcon = 18, kText = 16, kLabel = 12;
 constexpr double kInset = 10;  // from a row's edge to its icon, and from its value to the edge
 
-const QColor kChampagne(241, 221, 191, 128);   // the button's tile, as the status icons'
+const QColor kIvory(255, 255, 240);           // the button's tile: ivory, like the status icons', but solid
+const QColor kIvoryPressed(238, 238, 222);    // the same, a shade darker, under the cursor or with the list open
 const QColor kPanel(2, 2, 2, 242);             // Beam's FRAME: its background at 95%
 const QColor kBorder(0x1f, 0x1d, 0x1a);
 const QColor kForeground(0xed, 0xe9, 0xe2);
@@ -399,11 +400,7 @@ void drawButton(QPainter& p)
 {
     QPainterPath path;
     path.addRoundedRect(QRectF(s_Button), px(kTileRadius), px(kTileRadius));
-    QColor tint = kChampagne;
-    if (s_Open || s_Button.contains(s_Mouse)) {
-        tint.setAlpha(176);
-    }
-    p.fillPath(path, tint);
+    p.fillPath(path, s_Open || s_Button.contains(s_Mouse) ? kIvoryPressed : kIvory);
 
     // Beam's mark: the cells it draws, as large as a whole multiple fits, so no pixel blurs.
     const QRect cells = s_MarkCells;

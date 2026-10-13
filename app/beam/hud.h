@@ -3,8 +3,8 @@
 struct _VIDEO_STATS;
 struct SDL_Window;
 
-// Beam (P19): the status icons over the stream -- top left, icons only, each on a champagne tile at
-// half opacity, each shown only while its problem lasts:
+// Beam (P19): the status icons over the stream -- top left, icons only, each on an ivory tile at 80%
+// opacity, each shown only while its problem lasts:
 //
 //   network        the connection is poor: frames lost, or a ping over 80 ms     (signal-1)
 //   decode         this PC cannot decode a frame in a frame's time   (gpu-decode)

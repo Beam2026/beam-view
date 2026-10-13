@@ -27,7 +27,7 @@ namespace {
 // Sizes on a 1080-line screen, scaled with the window above that. Beam's Help list -- a near-black
 // panel, an uppercase heading, icons beside each row, rows that light on hover -- drawn larger than
 // in Beam, to be read over a game from across a desk.
-constexpr double kTile = 54, kTileRadius = 11, kMarkScale = 1.5, kEdgeMargin = 10, kDragSlop = 5;
+constexpr double kTile = 54, kTileRadius = 11, kMarkScale = 1.3, kEdgeMargin = 10, kDragSlop = 5;
 constexpr double kGap = 9, kListWidth = 302, kSubWidth = 206, kPad = 4.5, kRadius = 7;
 constexpr double kStatsH = 52, kRowH = 36, kRowRadius = 4.5, kIcon = 16.5, kText = 14.5, kLabel = 11;
 constexpr double kInset = 9;  // from a row's edge to its icon, and from its value to the edge
@@ -406,7 +406,7 @@ void drawButton(QPainter& p)
     p.setPen(QPen(kBorder, 1));
     p.drawPath(path);
 
-    // Beam's mark, the cells it draws, 1.5 times its grid on a 1080-line screen, every edge on a whole
+    // Beam's mark, the cells it draws, 1.3 times its grid on a 1080-line screen, every edge on a whole
     // pixel so nothing blurs.
     const QRect cells = s_MarkCells;
     const double scale = kMarkScale * s_K;

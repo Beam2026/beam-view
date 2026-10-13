@@ -621,6 +621,8 @@ void begin(Session* session)
     if (s_Timer == 0) {
         s_Timer = SDL_AddTimer(kRefreshMs, postRefresh, nullptr);
     }
+    // The cursor from the first moment, so the button can be reached.
+    BeamSessionControl::showCursor(session);
     redraw();
 }
 

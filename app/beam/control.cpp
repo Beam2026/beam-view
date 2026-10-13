@@ -252,6 +252,20 @@ void BeamSessionControl::setVsync(Session* session, bool vsync, bool pacing)
     BeamStatus::state("vsync", !vsync ? "off" : pacing ? "pacing" : "on");
 }
 
+void BeamSessionControl::showCursor(Session* session)
+{
+    // This PC's cursor, visible in desktop mouse mode -- as Ctrl+Alt+Shift+C shows it, and that still
+    // hides it. Upstream hides it and leaves the host's cursor in the picture to point with, but a
+    // Beam session starts view-only: the host's cursor does not follow until the host gives the mouse,
+    // and with neither shown the guest had nothing to reach the Beam button with. Applied as input is
+    // next captured; game mouse mode hides the cursor whatever this says.
+    session->m_InputHandler->m_MouseCursorCapturedVisibilityState = true;
+    if (!SDL_GetRelativeMouseMode()) {
+        SDL_ShowCursor(SDL_ENABLE);
+    }
+    reportCursor(true);
+}
+
 void BeamSessionControl::disconnect()
 {
     // The quit key combination's own path, so Beam hears `beam: ending` as it does for that.

@@ -52,6 +52,7 @@ public:
     static void setMouseMode(Session* session, bool desktop);
     static void setDecoder(Session* session, StreamingPreferences::VideoDecoderSelection decoder);
     static void setVsync(Session* session, bool vsync, bool pacing);
+    static void showCursor(Session* session);
     static void disconnect();
 
     // For the list: the session's input, its window, and what each setting is now.

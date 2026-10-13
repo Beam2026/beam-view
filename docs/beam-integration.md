@@ -170,6 +170,7 @@ beam: first-frame            <- first video frame on screen in this window; hide
 beam: ending                 <- the user asked to end the stream; end the session now, do not wait for exit
 beam: warning <text>         <- a setting this session could not honour, and what it does instead (P11)
 beam: state <what> <value>   <- what the stream is doing now, after a call or a key combination (P16)
+beam: notice <kind> <value>  <- a status icon over the stream appearing or going, and why (P19)
 beam: identity <base64>      <- `identity` only: this install's certificate, PEM, base64 (P12)
 beam: error <code> <text>    <- Beam renders this in its own words
 beam: ended <reason>         <- reason is "clean" or "error"; process exits after
@@ -193,6 +194,7 @@ sound on|off            -> beam: state sound on|off         this PC playing the 
 mouse lock|free         -> beam: state mouse lock|free      the cursor kept inside the stream window, or free to leave
 keyboard lock|free      -> beam: state keyboard lock|free   Windows, Alt+Tab, Alt+F4 sent to the host, or kept here
 disconnect              -> beam: ending                     the quit key combination's own path
+hud demo on|off         -> beam: state hud-demo on|off      every status icon at once, to see them (P19)
 ```
 
 With the keyboard free, Alt+F4 is this PC's again -- and the stream is the window in front, so it

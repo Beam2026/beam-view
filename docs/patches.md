@@ -537,6 +537,39 @@ separate locks and every toggle reported, checked every call -- `window full`, `
 stream, and `capture on` at the stream's start. Not yet seen: `Ctrl+Alt+Shift+M`, which never
 reached beam-view in that session.
 
+## P19 — Status icons over the stream, 2026-10-13
+
+Step 4 of [`plan.md`](plan.md). New in `app/beam/hud.{h,cpp}` and `app/res/hud/*.svg`. Hooks in
+upstream files, 51 lines, four changed:
+
+- `overlaymanager.{h,cpp}`: a fourth overlay slot, `OverlayBeamHud`, and `setOverlaySurface`, which
+  shows a surface composed elsewhere instead of rendering text.
+- `d3d11va.cpp`, `dxva2.cpp`, `plvk.cpp`, `sdlvid.cpp`: the new slot shares the stats overlay's
+  top-left branch -- one changed line each.
+- `session.cpp`: start the HUD with the event loop, end it at cleanup, and send the connection
+  status and gamepad mouse mode to it instead of to Moonlight's corner text, whose code stays below
+  an early return.
+- `ffmpeg.cpp`: each second's stats window, with the ping, goes to the HUD.
+- `resources.qrc`, `app.pro`, `beamstatus.{h,cpp}` (`beam: notice`), and the `hud demo` call in
+  `control.cpp`.
+
+**What shows, and when.** Network: lost frames over 2%, a ping over 80 ms, or the streaming
+library's own "poor" verdict. Decode: the average time from a frame's arrival to its decode over one
+frame's time. Encode: the host's processing time over one frame's time. Each must hold for three
+seconds to show and three to go. The controller shows for 5 s when gamepad mouse mode turns on, and
+for 5 s on a red tile when it turns off. The thresholds are first guesses, to tune against real
+sessions.
+
+**How it is drawn.** One surface, composed eight times a second on an SDL timer -- which is also
+what puts the HUD back after a decoder is rebuilt mid-stream. The icons are pixel art on a 24-cell
+grid, read from their SVGs as rectangles and drawn at a whole multiple of the grid (48 px on a
+1080-line screen), so no pixel blurs; the tiles' corners are anti-aliased. A mutex covers the
+decoder's thread, the streaming library's, the session's and the timer's, and `end()` takes it, so
+no redraw can reach a session that is going.
+
+Checked live 2026-10-13 with `hud demo on`, through Beam on two machines: all icons, sizes, tiles
+and the red controller tile as designed. The detection itself has not yet met a real bad link.
+
 ---
 
 ## When to stop

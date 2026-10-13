@@ -6,7 +6,7 @@ class Session;
 
 // Beam (P20): the Beam button over the stream, and the list it opens.
 //
-// The button is Beam's mark on a solid ivory tile, like the status icons'. It sits on the top, left or
+// The button is Beam's mark on a tile of Beam's own dark sky. It sits on the top, left or
 // right edge of the stream -- top centre at first -- and is dragged along them, snapping to the
 // nearest when let go. It shows whenever the cursor does (desktop mouse mode, or input released);
 // in game mouse mode, and after "Hide button", Ctrl+Alt+Shift+B opens the list and brings it back.

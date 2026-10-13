@@ -27,13 +27,13 @@ namespace {
 // Sizes on a 1080-line screen, scaled with the window above that. Beam's Help list -- a near-black
 // panel, an uppercase heading, icons beside each row, rows that light on hover -- drawn larger than
 // in Beam, to be read over a game from across a desk.
-constexpr double kTile = 64, kTileRadius = 13, kMarkInset = 3, kEdgeMargin = 10, kDragSlop = 5;
-constexpr double kGap = 9, kListWidth = 306, kSubWidth = 208, kPad = 5, kRadius = 7;
-constexpr double kHeadingH = 27, kStatsH = 52, kRowH = 36, kRowRadius = 5, kIcon = 16, kText = 14.5, kLabel = 11;
-constexpr double kInset = 9;  // from a row's edge to its icon, and from its value to the edge
+constexpr double kTile = 54, kTileRadius = 11, kMarkScale = 1.5, kEdgeMargin = 10, kDragSlop = 5;
+constexpr double kGap = 8, kListWidth = 270, kSubWidth = 184, kPad = 4, kRadius = 6;
+constexpr double kHeadingH = 24, kStatsH = 46, kRowH = 32, kRowRadius = 4, kIcon = 15, kText = 13, kLabel = 10;
+constexpr double kInset = 8;  // from a row's edge to its icon, and from its value to the edge
 
-const QColor kIvory(255, 255, 240);           // the button's tile: ivory, like the status icons', but solid
-const QColor kIvoryPressed(238, 238, 222);    // the same, a shade darker, under the cursor or with the list open
+const QColor kSpace(2, 2, 2);                 // the button's tile: Beam's own background, its sky
+const QColor kSpacePressed(18, 17, 15);       // a shade lighter, under the cursor or with the list open
 const QColor kPanel(2, 2, 2, 242);             // Beam's FRAME: its background at 95%
 const QColor kBorder(0x1f, 0x1d, 0x1a);
 const QColor kForeground(0xed, 0xe9, 0xe2);
@@ -400,17 +400,29 @@ void drawButton(QPainter& p)
 {
     QPainterPath path;
     path.addRoundedRect(QRectF(s_Button), px(kTileRadius), px(kTileRadius));
-    p.fillPath(path, s_Open || s_Button.contains(s_Mouse) ? kIvoryPressed : kIvory);
+    p.fillPath(path, s_Open || s_Button.contains(s_Mouse) ? kSpacePressed : kSpace);
 
-    // Beam's mark: the cells it draws, as large as a whole multiple fits, so no pixel blurs.
+    // A few faint stars, as on Beam's own sky -- always in the same places on the tile.
+    static const QPointF stars[] = {{0.18, 0.22}, {0.78, 0.16}, {0.86, 0.62}, {0.30, 0.82},
+                                    {0.62, 0.88}, {0.12, 0.55}, {0.52, 0.10}};
+    const double dot = std::max(1.0, s_K);
+    for (const QPointF& star : stars) {
+        p.fillRect(QRectF(s_Button.left() + star.x() * s_Button.width(), s_Button.top() + star.y() * s_Button.height(), dot, dot),
+                   QColor(255, 255, 255, 70));
+    }
+    p.setPen(QPen(kBorder, 1));
+    p.drawPath(path);
+
+    // Beam's mark, the cells it draws, 1.5 times its grid on a 1080-line screen, every edge on a whole
+    // pixel so nothing blurs.
     const QRect cells = s_MarkCells;
-    const int room = s_Button.width() - 2 * px(kMarkInset);
-    const int scale = std::max(1, std::min(room / std::max(1, cells.width()), room / std::max(1, cells.height())));
-    const int x0 = s_Button.left() + (s_Button.width() - cells.width() * scale) / 2 - cells.left() * scale;
-    const int y0 = s_Button.top() + (s_Button.height() - cells.height() * scale) / 2 - cells.top() * scale;
+    const double scale = kMarkScale * s_K;
+    auto edge = [scale](int cell) { return int(std::lround(cell * scale)); };
+    const int x0 = s_Button.left() + (s_Button.width() - (edge(cells.right() + 1) - edge(cells.left()))) / 2 - edge(cells.left());
+    const int y0 = s_Button.top() + (s_Button.height() - (edge(cells.bottom() + 1) - edge(cells.top()))) / 2 - edge(cells.top());
     p.setRenderHint(QPainter::Antialiasing, false);
     for (const PixelArt::Cell& c : s_Mark) {
-        p.fillRect(x0 + c.x * scale, y0 + c.y * scale, c.w * scale, c.h * scale, QColor(c.r, c.g, c.b));
+        p.fillRect(x0 + edge(c.x), y0 + edge(c.y), edge(c.x + c.w) - edge(c.x), edge(c.y + c.h) - edge(c.y), QColor(c.r, c.g, c.b));
     }
     p.setRenderHint(QPainter::Antialiasing, true);
 }

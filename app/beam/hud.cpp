@@ -25,10 +25,13 @@ const char* const kIconFiles[SlotCount] = {
 };
 
 constexpr int kGrid = 24;            // the icons' grid
-constexpr int kTilePadding = 2;      // around an icon, in grid cells
-constexpr int kTileGap = 5;          // between tiles, in grid cells
-constexpr int kTileRadius = 6;       // the tile's rounded corners, in grid cells
-constexpr int kMargin = 8;           // from the screen's corner, in grid cells
+// Pixels on a 1080-line screen, scaled with it. The icons are drawn 1.5 times their grid there --
+// 36 px -- and twice and three times on 1440 and 2160 lines.
+constexpr double kIconScale = 1.5;
+constexpr double kTilePadding = 4;   // around an icon
+constexpr double kTileGap = 7;       // between tiles
+constexpr double kTileRadius = 8;    // the tile's rounded corners
+constexpr double kMargin = 12;       // from the screen's corner
 const SDL_Color kIvory = {255, 255, 240, 204};     // the tile: ivory at 80%, a warning's brightest
 const SDL_Color kRed = {255, 95, 109, 204};        // the controller's tile as its mode turns off
 
@@ -66,7 +69,7 @@ struct Steady {
 std::mutex s_Lock;
 bool s_Active = false;
 bool s_Warnings = true;
-int s_Scale = 2;
+double s_Scale = 1;              // 1 on a 1080-line screen
 SDL_TimerID s_Timer = 0;
 bool s_Shown = false;         // whether a picture is up, so an empty HUD is cleared once
 bool s_ConnectionPoor = false;
@@ -103,11 +106,16 @@ std::vector<Slot> visibleSlots(Uint32 now)
 // The HUD as one surface, the screen's top-left corner at its origin. Called with s_Lock held.
 SDL_Surface* compose(const std::vector<Slot>& onScreen, Uint32 now)
 {
-    const int s = s_Scale;
-    const int tile = (kGrid + 2 * kTilePadding) * s;
+    const double s = s_Scale;
+    const double cell = kIconScale * s;             // one cell of an icon, in pixels
+    const int iconPx = int(std::lround(kGrid * cell));
+    const int pad = int(std::lround(kTilePadding * s));
+    const int gap = int(std::lround(kTileGap * s));
+    const int margin = int(std::lround(kMargin * s));
+    const int tile = iconPx + 2 * pad;
     const int count = (int)onScreen.size();
-    const int width = kMargin * s + count * tile + (count - 1) * kTileGap * s;
-    const int height = kMargin * s + tile;
+    const int width = margin + count * tile + (count - 1) * gap;
+    const int height = margin + tile;
 
     SDL_Surface* surface = SDL_CreateRGBSurfaceWithFormat(0, width, height, 32, SDL_PIXELFORMAT_ARGB8888);
     if (surface == nullptr) {
@@ -147,16 +155,19 @@ SDL_Surface* compose(const std::vector<Slot>& onScreen, Uint32 now)
 
     for (int i = 0; i < count; i++) {
         const double alpha = onScreen[i] == SlotGamepad || onScreen[i] == SlotGamepadOff ? 1.0 : pulse;
-        const int x0 = kMargin * s + i * (tile + kTileGap * s);
-        const int y0 = kMargin * s;
+        const int x0 = margin + i * (tile + gap);
+        const int y0 = margin;
 
         roundedTile(x0, y0, tile, kTileRadius * s, onScreen[i] == SlotGamepadOff ? kRed : kIvory, alpha);
 
-        // The icon, each cell a whole number of pixels.
-        const int ix = x0 + kTilePadding * s;
-        const int iy = y0 + kTilePadding * s;
+        // The icon, each cell's edges on whole pixels: never blurred, though at 1.5 times some cells
+        // are a pixel wider than others.
+        const int ix = x0 + pad;
+        const int iy = y0 + pad;
+        auto edge = [cell](int cells) { return int(std::lround(cells * cell)); };
         for (const Cell& c : s_Icons[onScreen[i]]) {
-            fill(ix + c.x * s, iy + c.y * s, c.w * s, c.h * s, argb(c.r, c.g, c.b, int(255 * alpha)));
+            fill(ix + edge(c.x), iy + edge(c.y), edge(c.x + c.w) - edge(c.x), edge(c.y + c.h) - edge(c.y),
+                 argb(c.r, c.g, c.b, int(255 * alpha)));
         }
     }
     return surface;
@@ -204,8 +215,8 @@ void begin(SDL_Window* window, bool warnings)
             s_Icons[i] = PixelArt::load(kIconFiles[i]);
         }
     }
-    // 48 pixels on a 1080-line screen, 72 on 1440, 96 on 4K: whole multiples of the 24-cell grid.
-    s_Scale = SDL_max(1, (int)std::lround(screenHeight / 540.0));
+    // 36 px icons on a 1080-line screen, 48 on 1440, 72 on 2160.
+    s_Scale = std::max(1.0, screenHeight / 1080.0);
     s_Warnings = warnings;
     s_Active = true;
     if (s_Timer == 0) {

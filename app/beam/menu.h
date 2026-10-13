@@ -11,9 +11,9 @@ class Session;
 // nearest when let go. It shows whenever the cursor does (desktop mouse mode, or input released);
 // in game mouse mode, and after "Hide button", Ctrl+Alt+Shift+B opens the list and brings it back.
 //
-// The list is drawn like Beam's Help list: the last second's ping, encode and decode times, then
-// Hide button, Window, Sound, Codec, Decoder, V-Sync, Mute when not in front, Mouse mode, Input
-// locks and Disconnect. Codec, Decoder, V-Sync and Input locks open a smaller list beside it.
+// The list is drawn like Beam's Help list: Hide button, Window, Sound, Codec, Decoder, V-Sync, Mute
+// when not in front, Mouse mode, Input locks and Disconnect, and at its bottom the last second's
+// ping, encode and decode times. Codec, Decoder, V-Sync and Input locks open a smaller list beside it.
 // Every change lasts for this session only, and is said as a `beam: state` line, as calls are.
 //
 // While the list is open, the mouse and keyboard are this PC's: input to the host is released, and

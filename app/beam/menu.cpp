@@ -29,7 +29,7 @@ namespace {
 // in Beam, to be read over a game from across a desk.
 constexpr double kTile = 54, kTileRadius = 11, kMarkScale = 1.5, kEdgeMargin = 10, kDragSlop = 5;
 constexpr double kGap = 9, kListWidth = 302, kSubWidth = 206, kPad = 4.5, kRadius = 7;
-constexpr double kHeadingH = 27, kStatsH = 52, kRowH = 36, kRowRadius = 4.5, kIcon = 16.5, kText = 14.5, kLabel = 11;
+constexpr double kStatsH = 52, kRowH = 36, kRowRadius = 4.5, kIcon = 16.5, kText = 14.5, kLabel = 11;
 constexpr double kInset = 9;  // from a row's edge to its icon, and from its value to the edge
 
 const QColor kSpace(2, 2, 2);                 // the button's tile: Beam's own background, its sky
@@ -229,7 +229,8 @@ void layout()
     };
 
     const int listW = px(kListWidth), pad = px(kPad), rowH = px(kRowH);
-    const int listH = pad + px(kHeadingH) + px(kStatsH) + pad + int(rows.size()) * rowH + pad * 3;
+    // The rows, a gap and a rule before Disconnect, another before the numbers at the bottom.
+    const int listH = pad + int(rows.size()) * rowH + pad * 2 + pad * 2 + px(kStatsH) + pad;
     const int gap = px(kGap);
     QPoint listAt;
     if (s_Edge == EdgeTop && !s_Dragging) {
@@ -243,8 +244,8 @@ void layout()
     }
     s_List = QRect(listAt, QSize(listW, listH));
 
-    // Rows below the heading and the numbers; a gap before Disconnect, under its own rule.
-    int y = s_List.top() + pad + px(kHeadingH) + px(kStatsH) + pad;
+    // The rows from the top; a gap before Disconnect, under its own rule.
+    int y = s_List.top() + pad;
     for (Row& row : rows) {
         if (row.item == ItemDisconnect) {
             y += pad * 2;
@@ -370,7 +371,7 @@ void drawNumbers(QPainter& p)
     const char* labels[] = {"PING", "ENCODE", "DECODE"};
 
     const int pad = px(kPad);
-    const int top = s_List.top() + pad + px(kHeadingH);
+    const int top = s_List.bottom() + 1 - pad - px(kStatsH);  // the numbers sit at the bottom
     const int colW = (s_List.width() - 2 * pad) / 3;
     for (int i = 0; i < 3; i++) {
         const QRect col(s_List.left() + pad + i * colW + px(kInset), top, colW - px(kInset), px(kStatsH));
@@ -384,9 +385,9 @@ void drawNumbers(QPainter& p)
         p.drawText(QRect(col.left(), col.top() + col.height() / 2 + px(2), col.width(), col.height() / 2), Qt::AlignLeft | Qt::AlignTop, values[i]);
     }
 
-    // A rule under the numbers, and one above Disconnect.
+    // A rule above the numbers, and one above Disconnect.
     p.setPen(QPen(kBorder, 1));
-    const int ruleY = top + px(kStatsH) + pad / 2;
+    const int ruleY = top - pad;
     p.drawLine(s_List.left() + pad, ruleY, s_List.right() - pad, ruleY);
     for (const Row& row : s_Rows) {
         if (row.item == ItemDisconnect) {
@@ -451,12 +452,6 @@ void redraw()
         drawButton(p);
         if (s_Open) {
             drawPanel(p, s_List);
-            QFont heading = font(kLabel, QFont::DemiBold);
-            heading.setLetterSpacing(QFont::AbsoluteSpacing, px(0.8));
-            p.setFont(heading);
-            p.setPen(kMuted);
-            p.drawText(QRect(s_List.left() + px(kPad) + px(kInset), s_List.top() + px(kPad), s_List.width(), px(kHeadingH)),
-                       Qt::AlignVCenter | Qt::AlignLeft, "BEAM");
             drawNumbers(p);
             if (!s_SubList.isNull()) {
                 drawPanel(p, s_SubList);

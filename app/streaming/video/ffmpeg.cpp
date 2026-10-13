@@ -2,6 +2,7 @@
 #include "ffmpeg.h"
 #include "utils.h"
 #include "streaming/session.h"
+#include "beam/hud.h"
 
 #include <h264_stream.h>
 
@@ -2130,6 +2131,13 @@ int FFmpegVideoDecoder::submitDecodeUnit(PDECODE_UNIT du)
                                 Session::get()->getOverlayManager().getOverlayText(Overlay::OverlayDebug),
                                 Session::get()->getOverlayManager().getOverlayMaxTextLength());
             Session::get()->getOverlayManager().setOverlayTextUpdated(Overlay::OverlayDebug);
+        }
+
+        // BEAM (P19): this second's numbers, with the ping, for the status icons
+        {
+            VIDEO_STATS window = {};
+            addVideoStats(m_ActiveWndVideoStats, window);
+            BeamHud::videoWindow(window, m_StreamFps);
         }
 
         // Accumulate these values into the global stats

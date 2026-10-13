@@ -32,8 +32,13 @@ repeatable, and safe to run against an already-paired host.
 beam-view.exe identity
 beam-view.exe pair   127.0.0.1:48989 --pin 1234 --beam-session <session id>
 beam-view.exe stream 127.0.0.1:48989 "Desktop" --display-mode borderless --resolution 1920x1080 --capture-system-keys always --audio-on-host --quit-after --absolute-mouse --fps 60 [--bitrate 50000] [--server-cert <base64 PEM>]
-beam-view.exe quit   127.0.0.1:48989
 ```
+
+**Those three are the only commands this program takes (P18).** `list` and `quit` -- upstream's,
+and never run by Beam -- answer `beam: error 1` and exit, and the bare program refuses to start
+(P15). It also makes no request of its own to the internet: the compatibility data, controller
+mappings and STUN that upstream fetches from moonlight-stream.org are compiled out
+(`BEAM_OFFLINE`), so the only connections it opens are to the host on `127.0.0.1`.
 
 **Which of these take a value, and which do not, is not cosmetic.** `--display-mode`,
 `--resolution`, `--capture-system-keys`, `--fps` and `--bitrate` are value or choice options. `--absolute-mouse`,
@@ -170,6 +175,7 @@ beam: first-frame            <- first video frame on screen in this window; hide
 beam: ending                 <- the user asked to end the stream; end the session now, do not wait for exit
 beam: warning <text>         <- a setting this session could not honour, and what it does instead (P11)
 beam: state <what> <value>   <- what the stream is doing now, after a call or a key combination (P16)
+beam: notice <kind> <value>  <- a status icon over the stream appearing or going, and why (P19)
 beam: identity <base64>      <- `identity` only: this install's certificate, PEM, base64 (P12)
 beam: error <code> <text>    <- Beam renders this in its own words
 beam: ended <reason>         <- reason is "clean" or "error"; process exits after
@@ -193,6 +199,7 @@ sound on|off            -> beam: state sound on|off         this PC playing the 
 mouse lock|free         -> beam: state mouse lock|free      the cursor kept inside the stream window, or free to leave
 keyboard lock|free      -> beam: state keyboard lock|free   Windows, Alt+Tab, Alt+F4 sent to the host, or kept here
 disconnect              -> beam: ending                     the quit key combination's own path
+hud demo on|off         -> beam: state hud-demo on|off      every status icon at once, to see them (P19)
 ```
 
 With the keyboard free, Alt+F4 is this PC's again -- and the stream is the window in front, so it

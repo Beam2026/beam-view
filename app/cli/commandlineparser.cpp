@@ -380,6 +380,7 @@ void StreamCommandLineParser::parse(const QStringList &args, StreamingPreference
     parser.addToggleOption("frame-pacing", "frame pacing");
     parser.addToggleOption("mute-on-focus-loss", "mute audio when Moonlight window loses focus");
     parser.addToggleOption("background-gamepad", "background gamepad input");
+    parser.addToggleOption("gamepad-mouse", "gamepad mouse mode on a long press of Start"); // BEAM (P17)
     parser.addToggleOption("reverse-scroll-direction", "inverted scroll direction");
     parser.addToggleOption("swap-gamepad-buttons", "swap A/B and X/Y gamepad buttons (Nintendo-style)");
     parser.addToggleOption("keep-awake", "prevent display sleep while streaming");
@@ -494,6 +495,9 @@ void StreamCommandLineParser::parse(const QStringList &args, StreamingPreference
 
     // Resolve --background-gamepad and --no-background-gamepad options
     preferences->backgroundGamepad = parser.getToggleOptionValue("background-gamepad", preferences->backgroundGamepad);
+
+    // BEAM (P17): resolve --gamepad-mouse and --no-gamepad-mouse options
+    preferences->gamepadMouse = parser.getToggleOptionValue("gamepad-mouse", preferences->gamepadMouse);
 
     // Resolve --reverse-scroll-direction and --no-reverse-scroll-direction options
     preferences->reverseScrollDirection = parser.getToggleOptionValue("reverse-scroll-direction", preferences->reverseScrollDirection);

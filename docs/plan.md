@@ -106,8 +106,8 @@ disconnect              end the stream; same path as Ctrl+Alt+Shift+Q (beam: end
 Beam's roadmap 2.2, third increment, and the rows marked *Later* in Beam's `docs/desktop/settings.md`.
 
 - **Flags** for what still comes only from the registry: `--renderer auto|d3d11|vulkan`,
-  `--connection-warnings`/`--no-`, `--gamepad-mouse`/`--no-`, `--mdns`/`--no-` (today written to the
-  registry before pairing).
+  `--connection-warnings`/`--no-`, `--gamepad-mouse`/`--no-` (**done 2026-10-13, P17**: a Beam
+  setting), `--mdns`/`--no-` (today written to the registry before pairing).
 - **A stream ignores the registry.** `stream` builds its `StreamingPreferences` from defaults plus
   flags and never reads `HKCU\Software\Beam\beam-view`, so nothing a program writes there can
   change a Beam stream.
@@ -117,32 +117,33 @@ Beam's roadmap 2.2, third increment, and the rows marked *Later* in Beam's `docs
 **Gate (Beam's `settings.md`):** a stream started with that registry key emptied, and one with
 every value flipped, behave the same; each new setting checked once on two machines.
 
-## Step 4 -- Warnings as icons (P18)
+## Step 4 -- Status icons over the stream (P19) -- **done 2026-10-13**
 
-Moonlight's status overlay (`OverlayStatusUpdate`, "Slow connection to PC / Reduce your bitrate",
-`session.cpp`) is white text in a corner, in Moonlight's words.
+Moonlight's status overlay was white text in a corner, in Moonlight's words ("Slow connection to
+PC / Reduce your bitrate", "Gamepad mouse mode active"). It is now icons only, top left, each on a
+rounded champagne tile at half opacity, each shown only while it applies -- the designs are the
+pixel-art `app/res/hud/*.svg`:
 
-- **One Beam overlay.** A new overlay type that is a whole-window transparent surface Beam composes
-  itself (`app/beam/overlay.{h,cpp}`), so each renderer needs one new case at (0,0), full size,
-  rather than one per element. D3D11 first (`d3d11va.cpp`), then Vulkan (`plvk.cpp`); other
-  renderers keep Moonlight's text.
-- **Notices, each an icon and a few words:** connection poor (`CONN_STATUS_POOR`, network drops),
-  bitrate too high for the link, decoder falling behind (decode time over the frame time, pacer
-  drops), software decoding, sound. Icons are Beam's Tabler set, rasterised once with Qt SVG, which
-  is already linked.
-- Each notice also goes to Beam as `beam: notice <kind> on|off`, so the log has it.
-- `--connection-warnings` (step 3) turns them off.
+| Icon | Shows |
+| --- | --- |
+| network (`signal-1`, the red bar) | frames lost, or a ping over 80 ms |
+| decode (`gpu-decode`) | this PC takes longer than a frame to decode one |
+| encode (`gpu-encode`) | their PC takes longer than a frame to encode one |
+| controller (`gamepad`) | for 5 s as gamepad mouse mode turns on; on a red tile, 5 s as it turns off |
 
-**Gate:** each notice can be caused on purpose (a low bitrate cap, software decoding, a throttled
-link) and shows as its icon and words, and nothing of Moonlight's text appears on the D3D11 or
-Vulkan renderer.
+The three warnings pulse slowly, appear after three bad seconds and go after three good ones.
+Every change is a `beam: notice` line with the numbers behind it, and `hud demo on|off` shows them
+all. The detail is P19 in [`patches.md`](patches.md).
 
-## Step 5 -- The Beam button and its list (P19)
+## Step 5 -- The Beam button and its list (P20)
 
 Beam's roadmap 3.1.
 
-- **The button**: Beam's mark, small, at an edge of the stream. It is shown only while the mouse is
-  free (`Ctrl+Alt+Shift+Z` ungrabs it today), so it never sits under a game's cursor.
+- **The button**: Beam's mark, small, at an edge of the stream. Usable while the cursor can reach
+  it -- desktop mouse mode, input released, or its list open. In game mouse mode with input
+  captured it stays on screen **faded** (30%) and cannot be clicked: hiding it there read as the
+  button vanishing at every `Ctrl+Alt+Shift+M` (seen 2026-10-13). `Ctrl+Alt+Shift+B` or
+  `Ctrl+Alt+Shift+Z` makes it usable again.
 - **The list it opens**:
   - **Performance** -- the graphs (step 6) on or off
   - **Window** -- full screen or windowed
@@ -160,7 +161,7 @@ Beam's roadmap 3.1.
 item works and is reported to Beam; Disconnect ends the session cleanly; the host receives none of
 the clicks; and with the button hidden, the key combination still reaches the list.
 
-## Step 6 -- Performance as graphs (P20)
+## Step 6 -- Performance as graphs (P21)
 
 Today `Ctrl+Alt+Shift+S` shows Moonlight's text block (`ffmpeg.cpp`, `VIDEO_STATS`).
 
@@ -181,6 +182,11 @@ Today `Ctrl+Alt+Shift+S` shows Moonlight's text block (`ffmpeg.cpp`, `VIDEO_STAT
 **Gate:** the graphs update live on a two-machine session, cost no measurable frame time with the
 overlay on (render time in the graphs themselves, before and after), and match the text overlay's
 numbers they replace.
+
+## Done outside the steps
+
+- **P18, nothing but Beam** (2026-10-13): no request to moonlight-stream.org (compatibility data,
+  controller mappings, STUN), and only the commands Beam runs. See [`patches.md`](patches.md).
 
 ## Open questions, decided when their step starts
 

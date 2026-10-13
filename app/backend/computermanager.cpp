@@ -208,7 +208,9 @@ ComputerManager::ComputerManager(StreamingPreferences* prefs)
     }
 
     // Fetch latest compatibility data asynchronously
+#ifndef BEAM_OFFLINE // BEAM (P18): without it, every host counts as supported
     m_CompatFetcher.start();
+#endif
 
     // Start the delayed flush thread to handle saveHosts() calls
     m_DelayedFlushThread = new DelayedFlushThread(this);
@@ -922,6 +924,7 @@ private:
             }
 
             // Get the WAN IP address using STUN if we're on mDNS over IPv4
+#ifndef BEAM_OFFLINE // BEAM (P18): no STUN request to moonlight-stream.org
             if (QHostAddress(newComputer->localAddress.address()).protocol() == QAbstractSocket::IPv4Protocol) {
                 quint32 addr;
                 int err = LiFindExternalAddressIP4("stun.moonlight-stream.org", 3478, &addr);
@@ -932,6 +935,7 @@ private:
                     qWarning() << "STUN failed to get WAN address:" << err;
                 }
             }
+#endif
 
             if (!m_MdnsIpv6Address.isNull()) {
                 Q_ASSERT(QHostAddress(m_MdnsIpv6Address.address()).protocol() == QAbstractSocket::IPv6Protocol);
@@ -998,6 +1002,7 @@ private:
 
                 // If this wasn't added via mDNS but it is a RFC 1918 IPv4 address and not a VPN,
                 // go ahead and do the STUN request now to populate an external address.
+#ifndef BEAM_OFFLINE // BEAM (P18): no STUN request to moonlight-stream.org
                 if (!m_Mdns && addressIsSiteLocalV4 && newComputer->getActiveAddressReachability() != NvComputer::RI_VPN) {
                     quint32 addr;
                     int err = LiFindExternalAddressIP4("stun.moonlight-stream.org", 3478, &addr);
@@ -1008,6 +1013,9 @@ private:
                         qWarning() << "STUN failed to get WAN address:" << err;
                     }
                 }
+#else
+                Q_UNUSED(addressIsSiteLocalV4);
+#endif
 
                 // For non-mDNS clients, let them know it succeeded
                 if (!m_Mdns) {

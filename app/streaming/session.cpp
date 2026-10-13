@@ -1,6 +1,8 @@
 #include "session.h"
 #include "beamstatus.h"
 #include "beam/control.h"
+#include "beam/hud.h"
+#include "beam/menu.h"
 #include "settings/streamingpreferences.h"
 #include "streaming/streamutils.h"
 #include "backend/richpresencemanager.h"
@@ -187,6 +189,10 @@ void Session::clConnectionStatusUpdate(int connectionStatus)
     if (!s_ActiveSession->m_Preferences->connectionWarnings) {
         return;
     }
+
+    // BEAM (P19): the connection is an icon, not Moonlight's corner text below.
+    BeamHud::connectionStatus(connectionStatus == CONN_STATUS_POOR);
+    return;
 
     if (s_ActiveSession->m_MouseEmulationRefCount > 0) {
         // Don't display the overlay if mouse emulation is already using it
@@ -1674,6 +1680,11 @@ void Session::notifyMouseEmulationMode(bool enabled)
 {
     m_MouseEmulationRefCount += enabled ? 1 : -1;
     SDL_assert(m_MouseEmulationRefCount >= 0);
+    BeamSessionControl::reportGamepadMouse(m_MouseEmulationRefCount > 0); // BEAM (P17)
+
+    // BEAM (P19): the controller is an icon, not Moonlight's corner text below.
+    BeamHud::gamepadMouse(m_MouseEmulationRefCount > 0);
+    return;
 
     // We re-use the status update overlay for mouse mode notification
     if (m_MouseEmulationRefCount > 0) {
@@ -2179,7 +2190,7 @@ void Session::exec()
     QImage iconImage = QImage(":/res/beam.png")
                           .convertToFormat(QImage::Format_RGBA8888)
                           .scaled(ICON_SIZE, ICON_SIZE, Qt::IgnoreAspectRatio,
-                                  Qt::SmoothTransformation);
+                                  Qt::FastTransformation); // BEAM: pixel art, scaled 4:1 without blurring
     SDL_Surface* iconSurface = SDL_CreateRGBSurfaceWithFormatFrom((void*)iconImage.constBits(),
                                                                   iconImage.width(),
                                                                   iconImage.height(),
@@ -2260,6 +2271,8 @@ void Session::exec()
     // because we want to suspend all Qt processing until the stream is over.
     SDL_Event event;
     BeamSessionControl::listen(); // BEAM: calls on stdin, applied in this loop (P16)
+    BeamHud::begin(m_Window, m_Preferences->connectionWarnings); // BEAM: the status icons (P19)
+    BeamMenu::begin(this); // BEAM: the Beam button and its list (P20)
     for (;;) {
 #ifdef Q_OS_WIN32
         // In embedded mode our size follows the parent's client area
@@ -2299,6 +2312,11 @@ void Session::exec()
             continue;
         }
 #endif
+        // BEAM (P20): the Beam button and its list see every event first, and keep their own.
+        if (BeamMenu::handleEvent(this, event)) {
+            continue;
+        }
+
         switch (event.type) {
         case SDL_QUIT:
             SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION,
@@ -2640,6 +2658,9 @@ void Session::exec()
     }
 
 DispatchDeferredCleanup:
+    BeamHud::end(); // BEAM (P19): no redraw may reach the session from here on
+    BeamMenu::end(); // BEAM (P20)
+
     // Switch back to synchronous logging mode
     StreamUtils::exitAsyncLoggingMode();
 

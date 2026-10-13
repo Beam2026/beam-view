@@ -537,6 +537,86 @@ separate locks and every toggle reported, checked every call -- `window full`, `
 stream, and `capture on` at the stream's start. Not yet seen: `Ctrl+Alt+Shift+M`, which never
 reached beam-view in that session.
 
+## P17 — Controller as mouse, a flag, 2026-10-13
+
+Part of step 3 of [`plan.md`](plan.md). `--gamepad-mouse` / `--no-gamepad-mouse` in
+`app/cli/commandlineparser.cpp` (4 lines), beside the other gamepad toggles; it sets
+`StreamingPreferences::gamepadMouse`, which until now came only from the registry. A long press of
+Start turns a controller into a mouse and back; Beam passes the flag from its Client setting
+"Controller as mouse" (default on, upstream's default).
+
+Every change is logged, as P16 does for every toggle: `beam: state gamepad-mouse on|off`, from
+`Session::notifyMouseEmulationMode` (1 line in `session.cpp`).
+
+## P18 — Nothing but Beam, 2026-10-13
+
+beam-view is a service for Beam and answers nothing else. `app/main.cpp`, `app/app.pro`,
+`app/backend/computermanager.cpp`, `app/settings/mappingmanager.cpp`, `app/beamstatus.{h,cpp}`.
+
+**No request to anyone but the host.** Upstream asks moonlight-stream.org for compatibility data
+on every stream (`CompatFetcher`, which can decide whether a host counts as supported), downloads
+its controller-mapping database and applies it (`MappingFetcher`), and asks a STUN server for the
+WAN address of a LAN host. All three are compiled out by `DEFINES += BEAM_OFFLINE` in `app.pro`,
+with `#ifndef BEAM_OFFLINE` around each -- the code stays, so a sync meets no deleted lines.
+Without the data, every host counts as supported; the mappings are the database built into the
+exe (`SDL_GameControllerDB`). The STUN branches never ran for Beam -- `127.0.0.1` is not a LAN
+address -- and are out for good measure.
+
+**Only Beam's commands.** Beam runs `identity`, `pair` and `stream`. `list` and `quit` now answer
+`beam: error 1 beam-view takes only the commands Beam runs…` and exit, so no other program can use
+this one to talk to a host.
+
+What was already so, and the audit that found the above (2026-10-13): no window (P15); calls
+only on the stdin pipe Beam holds, which no other process can write (P16); video, audio and
+control bound to the address the connection uses, `127.0.0.1`, so nothing on the network reaches
+them; no Discord (P8); mDNS off.
+
+What is not, and why: any program can still write this program's registry settings -- step 3
+of the plan, the stream ignoring the registry, closes that. A program running as the same Windows
+user can always start this exe or read its key; no check inside it can stop that, because such a
+program has every right Beam has. The defence there is the installer (Beam's Step 4): a signed
+Beam in Program Files, which other programs cannot modify. The key's worth is small besides -- a
+host trusts it for one session (beam-share S6).
+
+Checked 2026-10-13: built with no new warnings; `list` and `quit` refused; `identity` unchanged.
+Live through Beam on two machines the same night: first frame in 6.0 s; mid-stream the process had
+no TCP connection open and three UDP endpoints, all on `127.0.0.1`; the log names no
+moonlight-stream.org, STUN or compatibility lookup, and the controller mappings came from the
+built-in database (568).
+
+## P19 — Status icons over the stream, 2026-10-13
+
+Step 4 of [`plan.md`](plan.md). New in `app/beam/hud.{h,cpp}` and `app/res/hud/*.svg`. Hooks in
+upstream files, 51 lines, four changed:
+
+- `overlaymanager.{h,cpp}`: a fourth overlay slot, `OverlayBeamHud`, and `setOverlaySurface`, which
+  shows a surface composed elsewhere instead of rendering text.
+- `d3d11va.cpp`, `dxva2.cpp`, `plvk.cpp`, `sdlvid.cpp`: the new slot shares the stats overlay's
+  top-left branch -- one changed line each.
+- `session.cpp`: start the HUD with the event loop, end it at cleanup, and send the connection
+  status and gamepad mouse mode to it instead of to Moonlight's corner text, whose code stays below
+  an early return.
+- `ffmpeg.cpp`: each second's stats window, with the ping, goes to the HUD.
+- `resources.qrc`, `app.pro`, `beamstatus.{h,cpp}` (`beam: notice`), and the `hud demo` call in
+  `control.cpp`.
+
+**What shows, and when.** Network: lost frames over 2%, a ping over 80 ms, or the streaming
+library's own "poor" verdict. Decode: the average time from a frame's arrival to its decode over one
+frame's time. Encode: the host's processing time over one frame's time. Each must hold for three
+seconds to show and three to go. The controller shows for 5 s when gamepad mouse mode turns on, and
+for 5 s on a red tile when it turns off. The thresholds are first guesses, to tune against real
+sessions.
+
+**How it is drawn.** One surface, composed eight times a second on an SDL timer -- which is also
+what puts the HUD back after a decoder is rebuilt mid-stream. The icons are pixel art on a 24-cell
+grid, read from their SVGs as rectangles and drawn at a whole multiple of the grid (48 px on a
+1080-line screen), so no pixel blurs; the tiles' corners are anti-aliased. A mutex covers the
+decoder's thread, the streaming library's, the session's and the timer's, and `end()` takes it, so
+no redraw can reach a session that is going.
+
+Checked live 2026-10-13 with `hud demo on`, through Beam on two machines: all icons, sizes, tiles
+and the red controller tile as designed. The detection itself has not yet met a real bad link.
+
 ---
 
 ## When to stop

@@ -568,6 +568,10 @@ Beam in Program Files, which other programs cannot modify. The key's worth is sm
 host trusts it for one session (beam-share S6).
 
 Checked 2026-10-13: built with no new warnings; `list` and `quit` refused; `identity` unchanged.
+Live through Beam on two machines the same night: first frame in 6.0 s; mid-stream the process had
+no TCP connection open and three UDP endpoints, all on `127.0.0.1`; the log names no
+moonlight-stream.org, STUN or compatibility lookup, and the controller mappings came from the
+built-in database (568).
 
 ---
 

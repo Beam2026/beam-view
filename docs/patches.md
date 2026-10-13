@@ -537,6 +537,17 @@ separate locks and every toggle reported, checked every call -- `window full`, `
 stream, and `capture on` at the stream's start. Not yet seen: `Ctrl+Alt+Shift+M`, which never
 reached beam-view in that session.
 
+## P17 — Controller as mouse, a flag, 2026-10-13
+
+Part of step 3 of [`plan.md`](plan.md). `--gamepad-mouse` / `--no-gamepad-mouse` in
+`app/cli/commandlineparser.cpp` (4 lines), beside the other gamepad toggles; it sets
+`StreamingPreferences::gamepadMouse`, which until now came only from the registry. A long press of
+Start turns a controller into a mouse and back; Beam passes the flag from its Client setting
+"Controller as mouse" (default on, upstream's default).
+
+Every change is logged, as P16 does for every toggle: `beam: state gamepad-mouse on|off`, from
+`Session::notifyMouseEmulationMode` (1 line in `session.cpp`).
+
 ## P19 — Status icons over the stream, 2026-10-13
 
 Step 4 of [`plan.md`](plan.md). New in `app/beam/hud.{h,cpp}` and `app/res/hud/*.svg`. Hooks in

@@ -106,8 +106,8 @@ disconnect              end the stream; same path as Ctrl+Alt+Shift+Q (beam: end
 Beam's roadmap 2.2, third increment, and the rows marked *Later* in Beam's `docs/desktop/settings.md`.
 
 - **Flags** for what still comes only from the registry: `--renderer auto|d3d11|vulkan`,
-  `--connection-warnings`/`--no-`, `--gamepad-mouse`/`--no-`, `--mdns`/`--no-` (today written to the
-  registry before pairing).
+  `--connection-warnings`/`--no-`, `--gamepad-mouse`/`--no-` (**done 2026-10-13, P17**: a Beam
+  setting), `--mdns`/`--no-` (today written to the registry before pairing).
 - **A stream ignores the registry.** `stream` builds its `StreamingPreferences` from defaults plus
   flags and never reads `HKCU\Software\Beam\beam-view`, so nothing a program writes there can
   change a Beam stream.

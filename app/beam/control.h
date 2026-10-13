@@ -50,10 +50,12 @@ public:
     //   mouse-mode game|desktop  relative or absolute mouse (Ctrl+Alt+Shift+M)
     //   cursor show|hide       the local cursor in desktop mouse mode (Ctrl+Alt+Shift+C)
     //   window minimized       the stream window minimised (Ctrl+Alt+Shift+D)
+    //   gamepad-mouse on|off   a controller driving the mouse, toggled by a long press of Start (P17)
     static void reportCapture(bool active);
     static void reportMouseMode(bool absolute);
     static void reportCursor(bool shown);
     static void reportMinimized();
+    static void reportGamepadMouse(bool active);
 
 private:
     static bool isFullScreen(Session* session);

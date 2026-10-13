@@ -1679,6 +1679,7 @@ void Session::notifyMouseEmulationMode(bool enabled)
 {
     m_MouseEmulationRefCount += enabled ? 1 : -1;
     SDL_assert(m_MouseEmulationRefCount >= 0);
+    BeamSessionControl::reportGamepadMouse(m_MouseEmulationRefCount > 0); // BEAM (P17)
 
     // BEAM (P19): the controller is an icon, not Moonlight's corner text below.
     BeamHud::gamepadMouse(m_MouseEmulationRefCount > 0);

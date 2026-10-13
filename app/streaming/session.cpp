@@ -2190,7 +2190,7 @@ void Session::exec()
     QImage iconImage = QImage(":/res/beam.png")
                           .convertToFormat(QImage::Format_RGBA8888)
                           .scaled(ICON_SIZE, ICON_SIZE, Qt::IgnoreAspectRatio,
-                                  Qt::SmoothTransformation);
+                                  Qt::FastTransformation); // BEAM: pixel art, scaled 4:1 without blurring
     SDL_Surface* iconSurface = SDL_CreateRGBSurfaceWithFormatFrom((void*)iconImage.constBits(),
                                                                   iconImage.width(),
                                                                   iconImage.height(),

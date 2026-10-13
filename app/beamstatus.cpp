@@ -147,6 +147,11 @@ void noCommand()
     error(ErrorLaunchFailed, "beam-view has no window of its own: Beam starts it with a command");
 }
 
+void notBeamsCommand()
+{
+    error(ErrorLaunchFailed, "beam-view takes only the commands Beam runs: identity, pair and stream");
+}
+
 void ended(const QString& reason)
 {
     emitLine(QString("ended %1").arg(reason));

@@ -830,6 +830,14 @@ int main(int argc, char *argv[])
         return 1;
     }
 
+    // BEAM (P18): Beam runs identity, pair and stream, and nothing else. list and quit stay in the
+    // tree, unreachable, so no other program can use this one to talk to a host.
+    if (commandLineParserResult == GlobalCommandLineParser::ListRequested ||
+            commandLineParserResult == GlobalCommandLineParser::QuitRequested) {
+        BeamStatus::notBeamsCommand();
+        return 1;
+    }
+
     switch (commandLineParserResult) {
     case GlobalCommandLineParser::ListRequested:
     case GlobalCommandLineParser::IdentityRequested:

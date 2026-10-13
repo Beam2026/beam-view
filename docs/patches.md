@@ -548,6 +548,42 @@ Start turns a controller into a mouse and back; Beam passes the flag from its Cl
 Every change is logged, as P16 does for every toggle: `beam: state gamepad-mouse on|off`, from
 `Session::notifyMouseEmulationMode` (1 line in `session.cpp`).
 
+## P18 — Nothing but Beam, 2026-10-13
+
+beam-view is a service for Beam and answers nothing else. `app/main.cpp`, `app/app.pro`,
+`app/backend/computermanager.cpp`, `app/settings/mappingmanager.cpp`, `app/beamstatus.{h,cpp}`.
+
+**No request to anyone but the host.** Upstream asks moonlight-stream.org for compatibility data
+on every stream (`CompatFetcher`, which can decide whether a host counts as supported), downloads
+its controller-mapping database and applies it (`MappingFetcher`), and asks a STUN server for the
+WAN address of a LAN host. All three are compiled out by `DEFINES += BEAM_OFFLINE` in `app.pro`,
+with `#ifndef BEAM_OFFLINE` around each -- the code stays, so a sync meets no deleted lines.
+Without the data, every host counts as supported; the mappings are the database built into the
+exe (`SDL_GameControllerDB`). The STUN branches never ran for Beam -- `127.0.0.1` is not a LAN
+address -- and are out for good measure.
+
+**Only Beam's commands.** Beam runs `identity`, `pair` and `stream`. `list` and `quit` now answer
+`beam: error 1 beam-view takes only the commands Beam runs…` and exit, so no other program can use
+this one to talk to a host.
+
+What was already so, and the audit that found the above (2026-10-13): no window (P15); calls
+only on the stdin pipe Beam holds, which no other process can write (P16); video, audio and
+control bound to the address the connection uses, `127.0.0.1`, so nothing on the network reaches
+them; no Discord (P8); mDNS off.
+
+What is not, and why: any program can still write this program's registry settings -- step 3
+of the plan, the stream ignoring the registry, closes that. A program running as the same Windows
+user can always start this exe or read its key; no check inside it can stop that, because such a
+program has every right Beam has. The defence there is the installer (Beam's Step 4): a signed
+Beam in Program Files, which other programs cannot modify. The key's worth is small besides -- a
+host trusts it for one session (beam-share S6).
+
+Checked 2026-10-13: built with no new warnings; `list` and `quit` refused; `identity` unchanged.
+Live through Beam on two machines the same night: first frame in 6.0 s; mid-stream the process had
+no TCP connection open and three UDP endpoints, all on `127.0.0.1`; the log names no
+moonlight-stream.org, STUN or compatibility lookup, and the controller mappings came from the
+built-in database (568).
+
 ## P19 — Status icons over the stream, 2026-10-13
 
 Step 4 of [`plan.md`](plan.md). New in `app/beam/hud.{h,cpp}` and `app/res/hud/*.svg`. Hooks in

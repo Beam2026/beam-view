@@ -180,6 +180,11 @@ Today `Ctrl+Alt+Shift+S` shows Moonlight's text block (`ffmpeg.cpp`, `VIDEO_STAT
 overlay on (render time in the graphs themselves, before and after), and match the text overlay's
 numbers they replace.
 
+## Done outside the steps
+
+- **P18, nothing but Beam** (2026-10-13): no request to moonlight-stream.org (compatibility data,
+  controller mappings, STUN), and only the commands Beam runs. See [`patches.md`](patches.md).
+
 ## Open questions, decided when their step starts
 
 - Step 1c: is leaving Qt Quick out of the build worth a second build configuration?

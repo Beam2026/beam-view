@@ -32,8 +32,13 @@ repeatable, and safe to run against an already-paired host.
 beam-view.exe identity
 beam-view.exe pair   127.0.0.1:48989 --pin 1234 --beam-session <session id>
 beam-view.exe stream 127.0.0.1:48989 "Desktop" --display-mode borderless --resolution 1920x1080 --capture-system-keys always --audio-on-host --quit-after --absolute-mouse --fps 60 [--bitrate 50000] [--server-cert <base64 PEM>]
-beam-view.exe quit   127.0.0.1:48989
 ```
+
+**Those three are the only commands this program takes (P18).** `list` and `quit` -- upstream's,
+and never run by Beam -- answer `beam: error 1` and exit, and the bare program refuses to start
+(P15). It also makes no request of its own to the internet: the compatibility data, controller
+mappings and STUN that upstream fetches from moonlight-stream.org are compiled out
+(`BEAM_OFFLINE`), so the only connections it opens are to the host on `127.0.0.1`.
 
 **Which of these take a value, and which do not, is not cosmetic.** `--display-mode`,
 `--resolution`, `--capture-system-keys`, `--fps` and `--bitrate` are value or choice options. `--absolute-mouse`,

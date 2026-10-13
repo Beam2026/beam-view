@@ -76,6 +76,9 @@ void error(ErrorCode code, const QString& text);
 // failure. The caller exits 1 straight after.
 void noCommand();
 
+// A command Beam never runs -- list, quit (P18). The caller exits 1 straight after.
+void notBeamsCommand();
+
 // reason is "clean" or "error"
 void ended(const QString& reason);
 

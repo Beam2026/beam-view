@@ -17,10 +17,12 @@ MappingManager::MappingManager()
     QSettings settings;
 
     // Load updated mappings from the Internet once per Moonlight launch
+#ifndef BEAM_OFFLINE // BEAM (P18): the database built into the exe is used instead
     if (s_MappingFetcher == nullptr) {
         s_MappingFetcher = new MappingFetcher();
         s_MappingFetcher->start();
     }
+#endif
 
     // First load existing saved mappings. This ensures the user's
     // hints can always override the old data.

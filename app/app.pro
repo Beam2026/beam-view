@@ -27,6 +27,11 @@ TEMPLATE = app
 # deprecated API in order to know how to port your code away from it.
 DEFINES += QT_DEPRECATED_WARNINGS
 
+# BEAM (P18): this program talks to nothing but the host Beam's tunnel brings it -- no request to
+# moonlight-stream.org for compatibility data, controller mappings or STUN. The code stays, behind
+# this switch, so a sync with upstream meets no deleted lines.
+DEFINES += BEAM_OFFLINE
+
 # You can also make your code fail to compile if you use deprecated APIs.
 # In order to do so, uncomment the following line.
 # You can also select to disable deprecated APIs only up to a certain version of Qt.

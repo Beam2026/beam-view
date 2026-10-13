@@ -11,8 +11,8 @@
         <file>res/no_app_image.png</file>
         <file>res/settings.svg</file>
         <file>res/hud/beam-hud-signal-1.svg</file>
-        <file>res/hud/beam-hud-gpu-down.svg</file>
-        <file>res/hud/beam-hud-gpu-up.svg</file>
+        <file>res/hud/beam-hud-gpu-decode.svg</file>
+        <file>res/hud/beam-hud-gpu-encode.svg</file>
         <file>res/hud/beam-hud-gamepad.svg</file>
         <file>res/arrow_left.svg</file>
         <file>res/question_mark.svg</file>

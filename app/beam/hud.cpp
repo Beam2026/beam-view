@@ -20,13 +20,14 @@ struct Cell {
 };
 using Icon = std::vector<Cell>;
 
-enum Slot { SlotNetwork, SlotDecode, SlotEncode, SlotGamepad, SlotCount };
+enum Slot { SlotNetwork, SlotDecode, SlotEncode, SlotGamepad, SlotGamepadOff, SlotCount };
 
 const char* const kIconFiles[SlotCount] = {
     ":/res/hud/beam-hud-signal-1.svg",
-    ":/res/hud/beam-hud-gpu-down.svg",
-    ":/res/hud/beam-hud-gpu-up.svg",
+    ":/res/hud/beam-hud-gpu-decode.svg",
+    ":/res/hud/beam-hud-gpu-encode.svg",
     ":/res/hud/beam-hud-gamepad.svg",
+    ":/res/hud/beam-hud-gamepad.svg",  // drawn red: see redden()
 };
 
 constexpr int kGrid = 24;            // the icons' grid
@@ -40,7 +41,7 @@ constexpr Uint32 kRedrawMs = 125;    // eight redraws a second, enough for a slo
 constexpr Uint32 kPulseMs = 2000;    // one pulse, dim to bright to dim
 constexpr int kSecondsToShow = 3;    // bad seconds before a warning appears
 constexpr int kSecondsToClear = 3;   // good seconds before it goes
-constexpr Uint32 kGamepadShowMs = 5000;  // the controller icon, after the mode turns on
+constexpr Uint32 kGamepadShowMs = 5000;  // the controller icon, after the mode turns on or off
 
 // The thresholds. Starting points, to be tuned against real sessions.
 constexpr Uint32 kPingPoorMs = 80;
@@ -76,7 +77,7 @@ bool s_Shown = false;         // whether a picture is up, so an empty HUD is cle
 bool s_ConnectionPoor = false;
 Steady s_Network, s_Decode, s_Encode;
 bool s_Gamepad = false;
-Uint32 s_GamepadUntil = 0;  // when the controller icon goes, after the mode turned on
+Uint32 s_GamepadUntil = 0;  // when the controller icon goes, after the mode turned on or off
 bool s_Demo = false;
 Icon s_Icons[SlotCount];
 
@@ -107,6 +108,16 @@ Icon loadIcon(const char* path)
     return icon;
 }
 
+// The controller as the mode turns off: its body in the two reds of the network icon's bar.
+Icon redden(Icon icon)
+{
+    for (Cell& c : icon) {
+        if (c.r == 0xec && c.g == 0xe5 && c.b == 0xd6) { c.r = 0xff; c.g = 0x5f; c.b = 0x6d; }
+        else if (c.r == 0xbf && c.g == 0xb7 && c.b == 0xa8) { c.r = 0xc2; c.g = 0x41; c.b = 0x4d; }
+    }
+    return icon;
+}
+
 Uint32 argb(Uint8 r, Uint8 g, Uint8 b, int a)
 {
     return (Uint32(a) << 24) | (Uint32(r) << 16) | (Uint32(g) << 8) | b;
@@ -125,7 +136,7 @@ std::vector<Slot> visibleSlots(Uint32 now)
         if (s_Decode.level) onScreen.push_back(SlotDecode);
         if (s_Encode.level) onScreen.push_back(SlotEncode);
     }
-    if (s_Gamepad && SDL_TICKS_PASSED(s_GamepadUntil, now) == SDL_FALSE) onScreen.push_back(SlotGamepad);
+    if (SDL_TICKS_PASSED(now, s_GamepadUntil) == SDL_FALSE) onScreen.push_back(s_Gamepad ? SlotGamepad : SlotGamepadOff);
     return onScreen;
 }
 
@@ -175,7 +186,7 @@ SDL_Surface* compose(const std::vector<Slot>& onScreen, Uint32 now)
     };
 
     for (int i = 0; i < count; i++) {
-        const double alpha = onScreen[i] == SlotGamepad ? 1.0 : pulse;
+        const double alpha = onScreen[i] == SlotGamepad || onScreen[i] == SlotGamepadOff ? 1.0 : pulse;
         const int x0 = kMargin * s + i * (tile + kTileGap * s);
         const int y0 = kMargin * s;
 
@@ -232,6 +243,7 @@ void begin(SDL_Window* window, bool warnings)
         for (int i = 0; i < SlotCount; i++) {
             s_Icons[i] = loadIcon(kIconFiles[i]);
         }
+        s_Icons[SlotGamepadOff] = redden(s_Icons[SlotGamepadOff]);
     }
     // 48 pixels on a 1080-line screen, 72 on 1440, 96 on 4K: whole multiples of the 24-cell grid.
     s_Scale = SDL_max(1, (int)std::lround(screenHeight / 540.0));
@@ -299,7 +311,7 @@ void gamepadMouse(bool active)
     std::lock_guard<std::mutex> guard(s_Lock);
     if (s_Gamepad != active) {
         s_Gamepad = active;
-        // Shown as the mode turns on, and gone after kGamepadShowMs: a reminder, not a fixture.
+        // Shown as the mode turns on (as drawn) or off (red), and gone after kGamepadShowMs.
         s_GamepadUntil = SDL_GetTicks() + kGamepadShowMs;
         BeamStatus::notice("gamepad-mouse", active ? "on" : "off");
     }

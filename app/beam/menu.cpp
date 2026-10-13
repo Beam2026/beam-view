@@ -28,9 +28,9 @@ namespace {
 // panel, an uppercase heading, icons beside each row, rows that light on hover -- drawn larger than
 // in Beam, to be read over a game from across a desk.
 constexpr double kTile = 54, kTileRadius = 11, kMarkScale = 1.5, kEdgeMargin = 10, kDragSlop = 5;
-constexpr double kGap = 8, kListWidth = 270, kSubWidth = 184, kPad = 4, kRadius = 6;
-constexpr double kHeadingH = 24, kStatsH = 46, kRowH = 32, kRowRadius = 4, kIcon = 15, kText = 13, kLabel = 10;
-constexpr double kInset = 8;  // from a row's edge to its icon, and from its value to the edge
+constexpr double kGap = 9, kListWidth = 302, kSubWidth = 206, kPad = 4.5, kRadius = 7;
+constexpr double kHeadingH = 27, kStatsH = 52, kRowH = 36, kRowRadius = 4.5, kIcon = 16.5, kText = 14.5, kLabel = 11;
+constexpr double kInset = 9;  // from a row's edge to its icon, and from its value to the edge
 
 const QColor kSpace(2, 2, 2);                 // the button's tile: Beam's own background, its sky
 const QColor kSpacePressed(18, 17, 15);       // a shade lighter, under the cursor or with the list open
@@ -123,11 +123,11 @@ QImage icon(const char* name, const QColor& colour, int size)
     return image;
 }
 
-QFont font(double size, bool semibold)
+QFont font(double size, QFont::Weight weight)
 {
     QFont f(s_Family);
     f.setPixelSize(std::max(1, px(size)));
-    f.setWeight(semibold ? QFont::DemiBold : QFont::Normal);
+    f.setWeight(weight);
     f.setHintingPreference(QFont::PreferNoHinting);
     return f;
 }
@@ -336,7 +336,7 @@ void drawRow(QPainter& p, const Row& row, bool hovered)
         p.drawImage(QPoint(x, r.top() + (r.height() - size) / 2), icon(row.icon, text, size));
         x += size + px(kInset);
     }
-    p.setFont(font(kText, false));
+    p.setFont(font(kText, QFont::Medium));
     p.setPen(text);
     p.drawText(QRect(x, r.top(), r.right() - x, r.height()), Qt::AlignVCenter | Qt::AlignLeft, row.label);
 
@@ -374,12 +374,12 @@ void drawNumbers(QPainter& p)
     const int colW = (s_List.width() - 2 * pad) / 3;
     for (int i = 0; i < 3; i++) {
         const QRect col(s_List.left() + pad + i * colW + px(kInset), top, colW - px(kInset), px(kStatsH));
-        QFont label = font(kLabel, true);
+        QFont label = font(kLabel, QFont::DemiBold);
         label.setLetterSpacing(QFont::AbsoluteSpacing, px(0.8));
         p.setFont(label);
         p.setPen(kMuted);
         p.drawText(QRect(col.left(), col.top(), col.width(), col.height() / 2), Qt::AlignLeft | Qt::AlignBottom, labels[i]);
-        p.setFont(font(kText + 2, false));
+        p.setFont(font(kText + 2, QFont::Medium));
         p.setPen(kForeground);
         p.drawText(QRect(col.left(), col.top() + col.height() / 2 + px(2), col.width(), col.height() / 2), Qt::AlignLeft | Qt::AlignTop, values[i]);
     }
@@ -402,14 +402,6 @@ void drawButton(QPainter& p)
     path.addRoundedRect(QRectF(s_Button), px(kTileRadius), px(kTileRadius));
     p.fillPath(path, s_Open || s_Button.contains(s_Mouse) ? kSpacePressed : kSpace);
 
-    // A few faint stars, as on Beam's own sky -- always in the same places on the tile.
-    static const QPointF stars[] = {{0.18, 0.22}, {0.78, 0.16}, {0.86, 0.62}, {0.30, 0.82},
-                                    {0.62, 0.88}, {0.12, 0.55}, {0.52, 0.10}};
-    const double dot = std::max(1.0, s_K);
-    for (const QPointF& star : stars) {
-        p.fillRect(QRectF(s_Button.left() + star.x() * s_Button.width(), s_Button.top() + star.y() * s_Button.height(), dot, dot),
-                   QColor(255, 255, 255, 70));
-    }
     p.setPen(QPen(kBorder, 1));
     p.drawPath(path);
 
@@ -459,7 +451,7 @@ void redraw()
         drawButton(p);
         if (s_Open) {
             drawPanel(p, s_List);
-            QFont heading = font(kLabel, true);
+            QFont heading = font(kLabel, QFont::DemiBold);
             heading.setLetterSpacing(QFont::AbsoluteSpacing, px(0.8));
             p.setFont(heading);
             p.setPen(kMuted);
@@ -617,6 +609,7 @@ void begin(Session* session)
     s_Session = session;
     if (s_Family.isEmpty()) {
         const int id = QFontDatabase::addApplicationFont(":/res/menu/DMSans-Regular.ttf");
+        QFontDatabase::addApplicationFont(":/res/menu/DMSans-Medium.ttf");
         QFontDatabase::addApplicationFont(":/res/menu/DMSans-SemiBold.ttf");
         const QStringList families = QFontDatabase::applicationFontFamilies(id);
         s_Family = families.isEmpty() ? QString("Segoe UI") : families.first();

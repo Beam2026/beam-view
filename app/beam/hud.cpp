@@ -25,12 +25,12 @@ const char* const kIconFiles[SlotCount] = {
 };
 
 constexpr int kGrid = 24;            // the icons' grid
-// Pixels on a 1080-line screen, scaled with it. The icons are drawn 1.5 times their grid there --
-// 36 px -- and twice and three times on 1440 and 2160 lines.
-constexpr double kIconScale = 1.5;
-constexpr double kTilePadding = 4;   // around an icon
-constexpr double kTileGap = 7;       // between tiles
-constexpr double kTileRadius = 8;    // the tile's rounded corners
+// Pixels on a 1080-line screen, scaled with it. A tile is the Beam button's size, 54 px, its icon
+// 1.75 times its grid -- 42 px -- and its corners the button's.
+constexpr double kIconScale = 1.75;
+constexpr double kTilePadding = 6;   // around an icon
+constexpr double kTileGap = 8;       // between tiles
+constexpr double kTileRadius = 11;   // the tile's rounded corners
 constexpr double kMargin = 12;       // from the screen's corner
 const SDL_Color kIvory = {255, 255, 240, 204};     // the tile: ivory at 80%, a warning's brightest
 const SDL_Color kRed = {255, 95, 109, 204};        // the controller's tile as its mode turns off
@@ -215,7 +215,7 @@ void begin(SDL_Window* window, bool warnings)
             s_Icons[i] = PixelArt::load(kIconFiles[i]);
         }
     }
-    // 36 px icons on a 1080-line screen, 48 on 1440, 72 on 2160.
+    // 54 px tiles on a 1080-line screen, scaled with it.
     s_Scale = std::max(1.0, screenHeight / 1080.0);
     s_Warnings = warnings;
     s_Active = true;

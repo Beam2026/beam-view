@@ -16,8 +16,8 @@ struct SDL_Window;
 // warning appears after three bad seconds and goes after three good ones, so one bad moment does
 // not make it flicker. Every change is said on stdout as `beam: notice <kind> <value>`.
 //
-// The pictures are app/res/hud/*.svg, pixel art on a 24-pixel grid, drawn 1.5 times their size on a
-// 1080-line screen with every edge on a whole pixel, so nothing blurs; the tiles' corners are smooth. Moonlight's own status text no longer appears.
+// The pictures are app/res/hud/*.svg, pixel art on a 24-pixel grid, drawn 1.75 times their size on a
+// 1080-line screen with every edge on a whole pixel, so nothing blurs. A tile is the Beam button's size. Moonlight's own status text no longer appears.
 //
 // Thread-safe: the stats arrive on the decoder's thread, the connection status on the streaming
 // library's, the controller on the session's, and the picture is redrawn on a timer.

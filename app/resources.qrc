@@ -27,6 +27,7 @@
         <file>res/menu/volume-off.svg</file>
         <file>res/menu/wave-sine.svg</file>
         <file>res/menu/DMSans-Regular.ttf</file>
+        <file>res/menu/DMSans-Medium.ttf</file>
         <file>res/menu/DMSans-SemiBold.ttf</file>
         <file>res/hud/beam-hud-gpu-decode.svg</file>
         <file>res/hud/beam-hud-gpu-encode.svg</file>

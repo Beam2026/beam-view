@@ -303,7 +303,6 @@ void gamepadMouse(bool active)
         s_Gamepad = active;
         // Shown as the mode turns on (as drawn) or off (red), and gone after kGamepadShowMs.
         s_GamepadUntil = SDL_GetTicks() + kGamepadShowMs;
-        BeamStatus::notice("gamepad-mouse", active ? "on" : "off");
     }
 }
 

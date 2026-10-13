@@ -1,6 +1,7 @@
 #include "beam/control.h"
 
 #include "beamstatus.h"
+#include "beam/hud.h"
 #include "streaming/session.h"
 
 #include <atomic>
@@ -20,6 +21,7 @@ enum Call : intptr_t {
     CallMouse,
     CallKeyboard,
     CallDisconnect,
+    CallHudDemo,
 };
 
 std::atomic<bool> s_SoundOff{false};
@@ -79,6 +81,9 @@ void parse(const QString& line)
     }
     else if (what == "keyboard" && choice(value, "lock", "free", on)) {
         post(CallKeyboard, on);
+    }
+    else if (what == "hud" && words.size() == 3 && words[1] == "demo" && choice(words[2], "on", "off", on)) {
+        post(CallHudDemo, on);
     }
     else if (what == "disconnect" && words.size() == 1) {
         post(CallDisconnect, true);
@@ -178,6 +183,11 @@ void BeamSessionControl::apply(Session* session, const SDL_UserEvent& event)
         BeamStatus::state("keyboard", lockFree(on));
         break;
     }
+
+    case CallHudDemo:
+        BeamHud::demo(on);
+        BeamStatus::state("hud-demo", onOff(on));
+        break;
 
     case CallDisconnect: {
         // The quit key combination's own path, so Beam hears `beam: ending` as it does for that.

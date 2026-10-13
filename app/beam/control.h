@@ -13,6 +13,7 @@ class Session;
 //   mouse lock|free         the cursor kept inside the stream window, or free to leave it
 //   keyboard lock|free      Windows, Alt+Tab and Alt+F4 sent to the host, or kept on this PC
 //   disconnect              end the stream, exactly as Ctrl+Alt+Shift+Q does
+//   hud demo on|off         every status icon at once, to see them (P19)
 //
 // Every change, whoever made it -- a call, or a key combination -- is said as `beam: state <what>
 // <value>`, which is how Beam learns what the person changed. An unknown call is a `beam: warning`

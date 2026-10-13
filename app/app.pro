@@ -171,6 +171,7 @@ SOURCES += \
     backend/nvapp.cpp \
     beamstatus.cpp \
     beam/control.cpp \
+    beam/hud.cpp \
     cli/headless.cpp \
     cli/pair.cpp \
     main.cpp \
@@ -216,6 +217,7 @@ HEADERS += \
     backend/nvapp.h \
     beamstatus.h \
     beam/control.h \
+    beam/hud.h \
     cli/headless.h \
     cli/pair.h \
     settings/compatfetcher.h \

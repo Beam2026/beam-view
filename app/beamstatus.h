@@ -10,6 +10,7 @@
 //   beam: first-frame
 //   beam: warning <text>
 //   beam: state <what> <value>
+//   beam: notice <kind> <value>
 //   beam: error <code> <text>
 //   beam: ended <reason>
 //
@@ -60,6 +61,10 @@ void warning(const QString& text);
 // What the stream is doing now, after a call or a key combination changed it (P16):
 // `beam: state <what> <value>`, such as `state sound off`.
 void state(const QString& what, const QString& value);
+
+// A status icon over the stream appearing or going, and why (P19): `beam: notice <kind> <value>`,
+// such as `notice network poor (ping 112 ms, 0.4% lost)`.
+void notice(const QString& kind, const QString& value);
 
 // This install's client certificate, base64 of its PEM: what a host trusts for a session instead of
 // pairing (P12). Public -- the private key never leaves this machine.

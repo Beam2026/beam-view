@@ -10,6 +10,7 @@ namespace Overlay {
 enum OverlayType {
     OverlayDebug,
     OverlayStatusUpdate,
+    OverlayBeamHud, // BEAM (P19): the status icons, composed by app/beam/hud.cpp
     OverlayMax
 };
 
@@ -38,6 +39,9 @@ public:
     SDL_Surface* getUpdatedOverlaySurface(OverlayType type);
 
     void setOverlayRenderer(IOverlayRenderer* renderer);
+
+    // BEAM (P19): show a surface composed elsewhere, or nothing for nullptr. Takes ownership.
+    void setOverlaySurface(OverlayType type, SDL_Surface* surface);
 
 private:
     void notifyOverlayUpdated(OverlayType type);

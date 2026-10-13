@@ -137,6 +137,11 @@ void state(const QString& what, const QString& value)
     emitLine(QString("state %1 %2").arg(what, value));
 }
 
+void notice(const QString& kind, const QString& value)
+{
+    emitLine(QString("notice %1 %2").arg(kind, value));
+}
+
 void noCommand()
 {
     error(ErrorLaunchFailed, "beam-view has no window of its own: Beam starts it with a command");

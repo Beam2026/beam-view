@@ -20,10 +20,9 @@ struct Cell {
 };
 using Icon = std::vector<Cell>;
 
-enum Slot { SlotNetworkPoor, SlotNetworkBad, SlotDecode, SlotEncode, SlotGamepad, SlotCount };
+enum Slot { SlotNetwork, SlotDecode, SlotEncode, SlotGamepad, SlotCount };
 
 const char* const kIconFiles[SlotCount] = {
-    ":/res/hud/beam-hud-signal-2.svg",
     ":/res/hud/beam-hud-signal-1.svg",
     ":/res/hud/beam-hud-gpu-down.svg",
     ":/res/hud/beam-hud-gpu-up.svg",
@@ -32,7 +31,8 @@ const char* const kIconFiles[SlotCount] = {
 
 constexpr int kGrid = 24;            // the icons' grid
 constexpr int kTilePadding = 4;      // around an icon, in grid cells
-constexpr int kTileGap = 4;          // between tiles, in grid cells
+constexpr int kTileGap = 6;          // between tiles, in grid cells
+constexpr int kTileRadius = 6;       // the tile's rounded corners, in grid cells
 constexpr int kMargin = 8;           // from the screen's corner, in grid cells
 const SDL_Color kChampagne = {241, 221, 191, 128};  // the tile: champagne at half opacity
 
@@ -40,15 +40,14 @@ constexpr Uint32 kRedrawMs = 125;    // eight redraws a second, enough for a slo
 constexpr Uint32 kPulseMs = 2000;    // one pulse, dim to bright to dim
 constexpr int kSecondsToShow = 3;    // bad seconds before a warning appears
 constexpr int kSecondsToClear = 3;   // good seconds before it goes
+constexpr Uint32 kGamepadShowMs = 5000;  // the controller icon, after the mode turns on
 
 // The thresholds. Starting points, to be tuned against real sessions.
 constexpr Uint32 kPingPoorMs = 80;
-constexpr Uint32 kPingBadMs = 150;
 constexpr double kLossPoor = 0.02;
-constexpr double kLossBad = 0.10;
 
-// A level that moves up after kSecondsToShow seconds asking for more, and down after
-// kSecondsToClear asking for less, so one bad second never shows and one good one never hides.
+// On after kSecondsToShow seconds asking for it, off after kSecondsToClear asking not to, so one bad
+// second never shows and one good one never hides.
 struct Steady {
     int level = 0;
     int upFor = 0;
@@ -77,6 +76,7 @@ bool s_Shown = false;         // whether a picture is up, so an empty HUD is cle
 bool s_ConnectionPoor = false;
 Steady s_Network, s_Decode, s_Encode;
 bool s_Gamepad = false;
+Uint32 s_GamepadUntil = 0;  // when the controller icon goes, after the mode turned on
 bool s_Demo = false;
 Icon s_Icons[SlotCount];
 
@@ -112,8 +112,8 @@ Uint32 argb(Uint8 r, Uint8 g, Uint8 b, int a)
     return (Uint32(a) << 24) | (Uint32(r) << 16) | (Uint32(g) << 8) | b;
 }
 
-// The onScreen on screen now, in their fixed order.
-std::vector<Slot> visibleSlots()
+// The icons on screen now, in their fixed order.
+std::vector<Slot> visibleSlots(Uint32 now)
 {
     std::vector<Slot> onScreen;
     if (s_Demo) {
@@ -121,12 +121,11 @@ std::vector<Slot> visibleSlots()
         return onScreen;
     }
     if (s_Warnings) {
-        if (s_Network.level == 2) onScreen.push_back(SlotNetworkBad);
-        else if (s_Network.level == 1) onScreen.push_back(SlotNetworkPoor);
+        if (s_Network.level) onScreen.push_back(SlotNetwork);
         if (s_Decode.level) onScreen.push_back(SlotDecode);
         if (s_Encode.level) onScreen.push_back(SlotEncode);
     }
-    if (s_Gamepad) onScreen.push_back(SlotGamepad);
+    if (s_Gamepad && SDL_TICKS_PASSED(s_GamepadUntil, now) == SDL_FALSE) onScreen.push_back(SlotGamepad);
     return onScreen;
 }
 
@@ -159,16 +158,28 @@ SDL_Surface* compose(const std::vector<Slot>& onScreen, Uint32 now)
         }
     };
 
+    // A rounded square, its corners smoothed: each pixel's share of the shape sets its opacity.
+    auto roundedTile = [&](int x0, int y0, int size, double radius, SDL_Color c, double alpha) {
+        for (int y = 0; y < size; y++) {
+            for (int x = 0; x < size; x++) {
+                // Distance outside the corner's circle, for a pixel in a corner; inside elsewhere.
+                const double cx = x + 0.5 < radius ? radius : (x + 0.5 > size - radius ? size - radius : x + 0.5);
+                const double cy = y + 0.5 < radius ? radius : (y + 0.5 > size - radius ? size - radius : y + 0.5);
+                const double d = std::hypot(x + 0.5 - cx, y + 0.5 - cy);
+                const double cover = SDL_clamp(radius - d + 0.5, 0.0, 1.0);
+                if (cover > 0) {
+                    pixels[(y0 + y) * stride + x0 + x] = argb(c.r, c.g, c.b, int(c.a * alpha * cover));
+                }
+            }
+        }
+    };
+
     for (int i = 0; i < count; i++) {
         const double alpha = onScreen[i] == SlotGamepad ? 1.0 : pulse;
         const int x0 = kMargin * s + i * (tile + kTileGap * s);
         const int y0 = kMargin * s;
 
-        // The tile, with its corners cut one cell in, the pixel-art way of rounding.
-        const Uint32 tint = argb(kChampagne.r, kChampagne.g, kChampagne.b, int(kChampagne.a * alpha));
-        fill(x0 + s, y0, tile - 2 * s, tile, tint);
-        fill(x0, y0 + s, s, tile - 2 * s, tint);
-        fill(x0 + tile - s, y0 + s, s, tile - 2 * s, tint);
+        roundedTile(x0, y0, tile, kTileRadius * s, kChampagne, alpha);
 
         // The icon, each cell a whole number of pixels.
         const int ix = x0 + kTilePadding * s;
@@ -188,7 +199,8 @@ Uint32 redraw(Uint32 interval, void*)
         return interval;
     }
 
-    const std::vector<Slot> onScreen = visibleSlots();
+    const Uint32 now = SDL_GetTicks();
+    const std::vector<Slot> onScreen = visibleSlots(now);
     if (onScreen.empty()) {
         if (s_Shown) {
             session->getOverlayManager().setOverlaySurface(Overlay::OverlayBeamHud, nullptr);
@@ -199,7 +211,7 @@ Uint32 redraw(Uint32 interval, void*)
 
     // Redrawn every tick, steady icons too: a decoder rebuilt mid-stream -- full screen to a window,
     // say -- starts with no overlay, and this puts the HUD back within a tick.
-    session->getOverlayManager().setOverlaySurface(Overlay::OverlayBeamHud, compose(onScreen, SDL_GetTicks()));
+    session->getOverlayManager().setOverlaySurface(Overlay::OverlayBeamHud, compose(onScreen, now));
     s_Shown = true;
     return interval;
 }
@@ -261,12 +273,10 @@ void videoWindow(const _VIDEO_STATS& window, int streamFps)
     const double encodeUs = window.framesWithHostProcessingLatency
         ? window.totalHostProcessingLatency * 100.0 / window.framesWithHostProcessingLatency : 0;
 
-    const int network = (ping > kPingBadMs || loss > kLossBad) ? 2
-                      : (s_ConnectionPoor || ping > kPingPoorMs || loss > kLossPoor) ? 1 : 0;
-
-    if (s_Network.feed(network)) {
-        const char* level = s_Network.level == 2 ? "bad" : s_Network.level == 1 ? "poor" : "off";
-        BeamStatus::notice("network", QString("%1 (ping %2 ms, %3% lost)").arg(level).arg(ping).arg(loss * 100, 0, 'f', 1));
+    const bool networkPoor = s_ConnectionPoor || ping > kPingPoorMs || loss > kLossPoor;
+    if (s_Network.feed(networkPoor ? 1 : 0)) {
+        BeamStatus::notice("network", QString("%1 (ping %2 ms, %3% lost)").arg(s_Network.level ? "poor" : "off")
+                           .arg(ping).arg(loss * 100, 0, 'f', 1));
     }
     if (s_Decode.feed(decodeUs > frameUs ? 1 : 0)) {
         BeamStatus::notice("decode", QString("%1 (%2 ms a frame, %3 ms allowed)").arg(s_Decode.level ? "on" : "off")
@@ -289,6 +299,8 @@ void gamepadMouse(bool active)
     std::lock_guard<std::mutex> guard(s_Lock);
     if (s_Gamepad != active) {
         s_Gamepad = active;
+        // Shown as the mode turns on, and gone after kGamepadShowMs: a reminder, not a fixture.
+        s_GamepadUntil = SDL_GetTicks() + kGamepadShowMs;
         BeamStatus::notice("gamepad-mouse", active ? "on" : "off");
     }
 }

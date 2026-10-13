@@ -24,11 +24,13 @@ namespace {
 
 // ------------------------------------------------------------------------------------- the look ---
 
-// Sizes on a 1080-line screen, scaled with the window above that. Beam's Help list: a near-black
-// panel, 12 px text with 14 px icons, a 10 px uppercase heading, rows that light on hover.
-constexpr double kTile = 44, kTileRadius = 10, kEdgeMargin = 10, kDragSlop = 5;
-constexpr double kGap = 8, kListWidth = 264, kSubWidth = 176, kPad = 4, kRadius = 6;
-constexpr double kHeadingH = 24, kStatsH = 44, kRowH = 30, kRowRadius = 4, kIcon = 14, kText = 12.5, kLabel = 10;
+// Sizes on a 1080-line screen, scaled with the window above that. Beam's Help list -- a near-black
+// panel, an uppercase heading, icons beside each row, rows that light on hover -- drawn larger than
+// in Beam, to be read over a game from across a desk.
+constexpr double kTile = 68, kTileRadius = 14, kMarkInset = 5, kEdgeMargin = 10, kDragSlop = 5;
+constexpr double kGap = 10, kListWidth = 340, kSubWidth = 230, kPad = 6, kRadius = 8;
+constexpr double kHeadingH = 30, kStatsH = 58, kRowH = 40, kRowRadius = 6, kIcon = 18, kText = 16, kLabel = 12;
+constexpr double kInset = 10;  // from a row's edge to its icon, and from its value to the edge
 
 const QColor kChampagne(241, 221, 191, 128);   // the button's tile, as the status icons'
 const QColor kPanel(2, 2, 2, 242);             // Beam's FRAME: its background at 95%
@@ -90,6 +92,7 @@ std::vector<Row> s_Rows;         // the list's rows and, when one is open, the s
 double s_K = 1;                  // the scale
 
 std::vector<PixelArt::Cell> s_Mark;
+QRect s_MarkCells;               // the cells the mark draws, in its grid
 QString s_Family;
 
 int px(double v) { return int(std::lround(v * s_K)); }
@@ -326,22 +329,22 @@ void drawRow(QPainter& p, const Row& row, bool hovered)
     const bool isLock = row.item == ItemChoice && s_Sub == SubLocks;
     QColor text = row.danger ? kDanger : (!row.enabled || (isLock && !row.on)) ? kFaint : kForeground;
 
-    int x = r.left() + px(8);
+    int x = r.left() + px(kInset);
     if (row.icon) {
         const int size = px(kIcon);
         p.drawImage(QPoint(x, r.top() + (r.height() - size) / 2), icon(row.icon, text, size));
-        x += size + px(8);
+        x += size + px(kInset);
     }
     p.setFont(font(kText, false));
     p.setPen(text);
     p.drawText(QRect(x, r.top(), r.right() - x, r.height()), Qt::AlignVCenter | Qt::AlignLeft, row.label);
 
     // At the right: the value and a chevron, or the check of the choice in use.
-    int right = r.right() - px(8);
+    int right = r.right() - px(kInset);
     if (row.opensSub) {
         const int size = px(kIcon);
         p.drawImage(QPoint(right - size, r.top() + (r.height() - size) / 2), icon("chevron-right", kMuted, size));
-        right -= size + px(4);
+        right -= size + px(6);
     }
     if (row.item == ItemChoice && !isLock && row.on) {
         const int size = px(kIcon);
@@ -369,13 +372,13 @@ void drawNumbers(QPainter& p)
     const int top = s_List.top() + pad + px(kHeadingH);
     const int colW = (s_List.width() - 2 * pad) / 3;
     for (int i = 0; i < 3; i++) {
-        const QRect col(s_List.left() + pad + i * colW + px(8), top, colW - px(8), px(kStatsH));
+        const QRect col(s_List.left() + pad + i * colW + px(kInset), top, colW - px(kInset), px(kStatsH));
         QFont label = font(kLabel, true);
         label.setLetterSpacing(QFont::AbsoluteSpacing, px(0.8));
         p.setFont(label);
         p.setPen(kMuted);
         p.drawText(QRect(col.left(), col.top(), col.width(), col.height() / 2), Qt::AlignLeft | Qt::AlignBottom, labels[i]);
-        p.setFont(font(kText + 1, false));
+        p.setFont(font(kText + 2, false));
         p.setPen(kForeground);
         p.drawText(QRect(col.left(), col.top() + col.height() / 2 + px(2), col.width(), col.height() / 2), Qt::AlignLeft | Qt::AlignTop, values[i]);
     }
@@ -402,11 +405,12 @@ void drawButton(QPainter& p)
     }
     p.fillPath(path, tint);
 
-    // Beam's mark, a 32-cell grid, at a whole multiple so no pixel blurs.
-    const int scale = std::max(1, int(std::floor((s_Button.width() - 2 * px(6)) / 32.0)));
-    const int size = 32 * scale;
-    const int x0 = s_Button.left() + (s_Button.width() - size) / 2;
-    const int y0 = s_Button.top() + (s_Button.height() - size) / 2;
+    // Beam's mark: the cells it draws, as large as a whole multiple fits, so no pixel blurs.
+    const QRect cells = s_MarkCells;
+    const int room = s_Button.width() - 2 * px(kMarkInset);
+    const int scale = std::max(1, std::min(room / std::max(1, cells.width()), room / std::max(1, cells.height())));
+    const int x0 = s_Button.left() + (s_Button.width() - cells.width() * scale) / 2 - cells.left() * scale;
+    const int y0 = s_Button.top() + (s_Button.height() - cells.height() * scale) / 2 - cells.top() * scale;
     p.setRenderHint(QPainter::Antialiasing, false);
     for (const PixelArt::Cell& c : s_Mark) {
         p.fillRect(x0 + c.x * scale, y0 + c.y * scale, c.w * scale, c.h * scale, QColor(c.r, c.g, c.b));
@@ -450,7 +454,7 @@ void redraw()
             heading.setLetterSpacing(QFont::AbsoluteSpacing, px(0.8));
             p.setFont(heading);
             p.setPen(kMuted);
-            p.drawText(QRect(s_List.left() + px(kPad) + px(8), s_List.top() + px(kPad), s_List.width(), px(kHeadingH)),
+            p.drawText(QRect(s_List.left() + px(kPad) + px(kInset), s_List.top() + px(kPad), s_List.width(), px(kHeadingH)),
                        Qt::AlignVCenter | Qt::AlignLeft, "BEAM");
             drawNumbers(p);
             if (!s_SubList.isNull()) {
@@ -608,6 +612,9 @@ void begin(Session* session)
         const QStringList families = QFontDatabase::applicationFontFamilies(id);
         s_Family = families.isEmpty() ? QString("Segoe UI") : families.first();
         s_Mark = PixelArt::load(":/res/menu/beam-mark.svg");
+        for (const PixelArt::Cell& c : s_Mark) {
+            s_MarkCells = s_MarkCells.united(QRect(c.x, c.y, c.w, c.h));
+        }
     }
     if (s_Timer == 0) {
         s_Timer = SDL_AddTimer(kRefreshMs, postRefresh, nullptr);
@@ -678,12 +685,16 @@ bool handleEvent(Session* session, const SDL_Event& event)
         const QPoint at = toPixels(event.motion.x, event.motion.y);
         const QPoint was = s_Mouse;
         s_Mouse = at;
-        if (s_Pressing && !s_Dragging && s_PressedItem == ItemNone &&
+        if (s_Pressing && !s_Dragging && !s_Open && s_PressedItem == ItemNone &&
                 (at - s_PressAt).manhattanLength() > px(kDragSlop)) {
             s_Dragging = true;
         }
         if (s_Dragging) {
-            s_DragAt = at - QPoint(s_Button.width() / 2, s_Button.height() / 2);
+            int w, h;
+            windowPixels(w, h);
+            const int tile = s_Button.width();
+            s_DragAt = QPoint(std::clamp(at.x() - tile / 2, 0, std::max(0, w - tile)),
+                              std::clamp(at.y() - tile / 2, 0, std::max(0, h - tile)));
             redraw();
             return true;
         }
@@ -734,9 +745,9 @@ bool handleEvent(Session* session, const SDL_Event& event)
             return true;
         }
         if (s_Dragging) {
-            s_Dragging = false;
-            layout();
+            // From where it was let go: the last redraw put the button there.
             snap();
+            s_Dragging = false;
         }
         else if (s_Button.contains(at) && s_Button.contains(s_PressAt)) {
             if (s_Open) closeList(); else openList();

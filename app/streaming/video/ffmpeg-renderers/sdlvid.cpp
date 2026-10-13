@@ -241,10 +241,11 @@ void SdlRenderer::renderOverlay(Overlay::OverlayType type)
                 m_OverlayRects[type].x = 0;
                 m_OverlayRects[type].y = viewportRect.h - newSurface->h;
             }
-            else if (type == Overlay::OverlayDebug || type == Overlay::OverlayBeamHud) { // BEAM: the HUD, top left (P19)
+            else if (type == Overlay::OverlayDebug || type >= Overlay::OverlayBeamHud) { // BEAM: Beam's overlays too, each at its position (P19, P20)
                 // Top left
-                m_OverlayRects[type].x = 0;
-                m_OverlayRects[type].y = 0;
+                SDL_Point at = Session::get()->getOverlayManager().getOverlayPosition(type);
+                m_OverlayRects[type].x = at.x;
+                m_OverlayRects[type].y = at.y;
             }
 
             m_OverlayRects[type].w = newSurface->w;

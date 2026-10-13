@@ -11,6 +11,23 @@
         <file>res/no_app_image.png</file>
         <file>res/settings.svg</file>
         <file>res/hud/beam-hud-signal-1.svg</file>
+        <file>res/menu/app-window.svg</file>
+        <file>res/menu/beam-mark.svg</file>
+        <file>res/menu/check.svg</file>
+        <file>res/menu/chevron-right.svg</file>
+        <file>res/menu/cpu.svg</file>
+        <file>res/menu/ear-off.svg</file>
+        <file>res/menu/eye-off.svg</file>
+        <file>res/menu/keyboard.svg</file>
+        <file>res/menu/lock.svg</file>
+        <file>res/menu/mouse.svg</file>
+        <file>res/menu/movie.svg</file>
+        <file>res/menu/power.svg</file>
+        <file>res/menu/volume.svg</file>
+        <file>res/menu/volume-off.svg</file>
+        <file>res/menu/wave-sine.svg</file>
+        <file>res/menu/DMSans-Regular.ttf</file>
+        <file>res/menu/DMSans-SemiBold.ttf</file>
         <file>res/hud/beam-hud-gpu-decode.svg</file>
         <file>res/hud/beam-hud-gpu-encode.svg</file>
         <file>res/hud/beam-hud-gamepad.svg</file>

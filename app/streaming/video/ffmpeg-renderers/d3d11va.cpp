@@ -1168,10 +1168,11 @@ bool D3D11VARenderer::createOverlayVertexBuffer(Overlay::OverlayType type, int w
         renderRect.x = 0;
         renderRect.y = 0;
     }
-    else if (type == Overlay::OverlayDebug || type == Overlay::OverlayBeamHud) { // BEAM: the HUD, top left (P19)
+    else if (type == Overlay::OverlayDebug || type >= Overlay::OverlayBeamHud) { // BEAM: Beam's overlays too, each at its position (P19, P20)
         // Top left
-        renderRect.x = 0;
-        renderRect.y = m_DisplayHeight - height;
+        SDL_Point at = Session::get()->getOverlayManager().getOverlayPosition(type);
+        renderRect.x = at.x;
+        renderRect.y = m_DisplayHeight - height - at.y;
     }
 
     renderRect.w = width;

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "SDL_compat.h"
+#include "settings/streamingpreferences.h"
 
 class Session;
 
@@ -39,6 +40,35 @@ public:
     // follows focus when "mute when not in front" is on and would otherwise undo this.
     static bool soundOff();
 
+    // The actions, on the session's thread. A call and the list over the stream (P20) both come
+    // here, and each says the state it leaves. All of them last for this session only: nothing is
+    // saved, so the next stream starts from Beam's settings again.
+    static void setStats(Session* session, bool on);
+    static void setFullScreen(Session* session, bool on);
+    static void setSound(bool on);
+    static void setMouseLock(Session* session, bool locked);
+    static void setKeyboardLock(Session* session, bool locked);
+    static void setMuteInBackground(Session* session, bool on);
+    static void setMouseMode(Session* session, bool desktop);
+    static void setDecoder(Session* session, StreamingPreferences::VideoDecoderSelection decoder);
+    static void setVsync(Session* session, bool vsync, bool pacing);
+    static void disconnect();
+
+    // For the list: the session's input, its window, and what each setting is now.
+    static void setCapture(Session* session, bool active);
+    static bool captureActive(Session* session);
+    static void raiseKeys(Session* session);
+    static SDL_Window* window(Session* session);
+    static bool isFullScreen(Session* session);
+    static bool mouseLocked(Session* session);
+    static bool keyboardLocked(Session* session);
+    static bool muteInBackground(Session* session);
+    static bool mouseModeDesktop(Session* session);
+    static StreamingPreferences::VideoDecoderSelection decoder(Session* session);
+    static bool vsync(Session* session);
+    static bool framePacing(Session* session);
+    static int videoFormat(Session* session);
+
     // Said after a call or a key combination changed one of these, so Beam hears both alike.
     static void reportStats(Session* session);
     static void reportWindow(Session* session);
@@ -57,6 +87,4 @@ public:
     static void reportMinimized();
     static void reportGamepadMouse(bool active);
 
-private:
-    static bool isFullScreen(Session* session);
 };

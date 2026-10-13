@@ -11,6 +11,7 @@ enum OverlayType {
     OverlayDebug,
     OverlayStatusUpdate,
     OverlayBeamHud, // BEAM (P19): the status icons, composed by app/beam/hud.cpp
+    OverlayBeamMenu, // BEAM (P20): the Beam button and its list, composed by app/beam/menu.cpp
     OverlayMax
 };
 
@@ -43,6 +44,11 @@ public:
     // BEAM (P19): show a surface composed elsewhere, or nothing for nullptr. Takes ownership.
     void setOverlaySurface(OverlayType type, SDL_Surface* surface);
 
+    // BEAM (P20): where a top-left overlay's corner sits, in the renderer's pixels from the top left.
+    // Set before the surface it applies to. (0, 0) unless set.
+    void setOverlayPosition(OverlayType type, int x, int y);
+    SDL_Point getOverlayPosition(OverlayType type);
+
 private:
     void notifyOverlayUpdated(OverlayType type);
     SDL_Surface* RenderTextOutlinedWrapped(TTF_Font* font, const char* text, SDL_Color textColor, SDL_Color outlineColor, int outlineWidth, int wrapWidth);
@@ -55,6 +61,7 @@ private:
 
         TTF_Font* font;
         SDL_Surface* surface;
+        SDL_Point position; // BEAM (P20)
     } m_Overlays[OverlayMax];
     IOverlayRenderer* m_Renderer;
     QByteArray m_FontData;

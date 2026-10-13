@@ -43,4 +43,8 @@ void gamepadMouse(bool active);
 // Every icon at once, whatever the stream is doing -- to see them (the `hud demo` call).
 void demo(bool on);
 
+// The last second's ping, and a frame's encode and decode time in milliseconds; negative while not
+// known yet. For the list over the stream (P20).
+void latest(int& pingMs, double& encodeMs, double& decodeMs);
+
 }

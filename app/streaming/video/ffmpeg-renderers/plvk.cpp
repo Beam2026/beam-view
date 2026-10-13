@@ -1033,10 +1033,11 @@ void PlVkRenderer::renderFrame(AVFrame *frame)
                 overlayParts[i].dst.x0 = 0;
                 overlayParts[i].dst.y0 = SDL_max(0, targetFrame.crop.y1 - overlayParts[i].src.y1);
             }
-            else if (i == Overlay::OverlayDebug || i == Overlay::OverlayBeamHud) { // BEAM: the HUD, top left (P19)
+            else if (i == Overlay::OverlayDebug || i >= Overlay::OverlayBeamHud) { // BEAM: Beam's overlays too, each at its position (P19, P20)
                 // Top left
-                overlayParts[i].dst.x0 = 0;
-                overlayParts[i].dst.y0 = 0;
+                SDL_Point at = Session::get()->getOverlayManager().getOverlayPosition((Overlay::OverlayType)i);
+                overlayParts[i].dst.x0 = at.x;
+                overlayParts[i].dst.y0 = at.y;
             }
             overlayParts[i].dst.x1 = overlayParts[i].dst.x0 + overlayParts[i].src.x1;
             overlayParts[i].dst.y1 = overlayParts[i].dst.y0 + overlayParts[i].src.y1;

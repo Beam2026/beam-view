@@ -140,65 +140,139 @@ void BeamSessionControl::apply(Session* session, const SDL_UserEvent& event)
     const bool on = reinterpret_cast<intptr_t>(event.data2) != 0;
 
     switch (static_cast<Call>(reinterpret_cast<intptr_t>(event.data1))) {
-    case CallStats:
-        session->getOverlayManager().setOverlayState(Overlay::OverlayDebug, on);
-        reportStats(session);
-        break;
-
-    case CallWindow:
-        // Upstream's own toggle, as Ctrl+Alt+Shift+X does it: on Windows it rebuilds the decoder,
-        // so the picture blinks once.
-        if (isFullScreen(session) != on) {
-            session->toggleFullscreen();
-            session->m_InputHandler->raiseAllKeys();
-        }
-        reportWindow(session);
-        break;
-
-    case CallSound:
-        s_SoundOff = !on;
-        BeamStatus::state("sound", onOff(on));
-        break;
-
-    case CallMouse: {
-        // Upstream's pointer region lock, as its key combination sets it: the cursor cannot leave
-        // the stream window. Marked as the person's choice, so going full screen or windowed no
-        // longer changes it by itself.
-        SdlInputHandler* input = session->m_InputHandler;
-        input->m_PointerRegionLockActive = on;
-        input->m_PointerRegionLockToggledByUser = true;
-        input->updatePointerRegionLock();
-        reportMouse(session);
-        break;
-    }
-
-    case CallKeyboard: {
-        // The keyboard grab: locked, Windows, Alt+Tab and Alt+F4 go to the host; free, they stay on
-        // this PC while every other key still reaches the stream. Beam starts every stream locked
-        // (`--capture-system-keys always`). Keys held now are raised, so none sticks on either side.
-        SdlInputHandler* input = session->m_InputHandler;
-        input->m_CaptureSystemKeysMode = on ? StreamingPreferences::CSK_ALWAYS : StreamingPreferences::CSK_OFF;
-        input->raiseAllKeys();
-        input->updateKeyboardGrabState();
-        BeamStatus::state("keyboard", lockFree(on));
-        break;
-    }
-
+    case CallStats:      setStats(session, on); break;
+    case CallWindow:     setFullScreen(session, on); break;
+    case CallSound:      setSound(on); break;
+    case CallMouse:      setMouseLock(session, on); break;
+    case CallKeyboard:   setKeyboardLock(session, on); break;
+    case CallDisconnect: disconnect(); break;
     case CallHudDemo:
         BeamHud::demo(on);
         BeamStatus::state("hud-demo", onOff(on));
         break;
-
-    case CallDisconnect: {
-        // The quit key combination's own path, so Beam hears `beam: ending` as it does for that.
-        SDL_Event quit = {};
-        quit.type = SDL_QUIT;
-        quit.quit.timestamp = SDL_GetTicks();
-        SDL_PushEvent(&quit);
-        break;
-    }
     }
 }
+
+void BeamSessionControl::setStats(Session* session, bool on)
+{
+    session->getOverlayManager().setOverlayState(Overlay::OverlayDebug, on);
+    reportStats(session);
+}
+
+void BeamSessionControl::setFullScreen(Session* session, bool on)
+{
+    // Upstream's own toggle, as Ctrl+Alt+Shift+X does it: on Windows it rebuilds the decoder, so the
+    // picture blinks once.
+    if (isFullScreen(session) != on) {
+        session->toggleFullscreen();
+        session->m_InputHandler->raiseAllKeys();
+    }
+    reportWindow(session);
+}
+
+void BeamSessionControl::setSound(bool on)
+{
+    s_SoundOff = !on;
+    BeamStatus::state("sound", onOff(on));
+}
+
+void BeamSessionControl::setMouseLock(Session* session, bool locked)
+{
+    // Upstream's pointer region lock, as its key combination sets it: the cursor cannot leave the
+    // stream window. Marked as the person's choice, so going full screen or windowed no longer
+    // changes it by itself.
+    SdlInputHandler* input = session->m_InputHandler;
+    input->m_PointerRegionLockActive = locked;
+    input->m_PointerRegionLockToggledByUser = true;
+    input->updatePointerRegionLock();
+    reportMouse(session);
+}
+
+void BeamSessionControl::setKeyboardLock(Session* session, bool locked)
+{
+    // The keyboard grab: locked, Windows, Alt+Tab and Alt+F4 go to the host; free, they stay on this
+    // PC while every other key still reaches the stream. Beam starts every stream locked
+    // (`--capture-system-keys always`). Keys held now are raised, so none sticks on either side.
+    SdlInputHandler* input = session->m_InputHandler;
+    input->m_CaptureSystemKeysMode = locked ? StreamingPreferences::CSK_ALWAYS : StreamingPreferences::CSK_OFF;
+    input->raiseAllKeys();
+    input->updateKeyboardGrabState();
+    BeamStatus::state("keyboard", lockFree(locked));
+}
+
+void BeamSessionControl::setMuteInBackground(Session* session, bool on)
+{
+    // "Mute when the stream isn't in front", for this session. Turned off while muted by it, the
+    // sound comes back now rather than at the next focus change.
+    session->m_Preferences->muteOnFocusLoss = on;
+    if (!on) {
+        session->m_AudioMuted = false;
+    }
+    BeamStatus::state("mute-in-background", onOff(on));
+}
+
+void BeamSessionControl::setMouseMode(Session* session, bool desktop)
+{
+    // Ctrl+Alt+Shift+M's steps, but only recapturing input that was captured: with the list over
+    // the stream open, it stays released.
+    SdlInputHandler* input = session->m_InputHandler;
+    const bool captured = input->isCaptureActive();
+    if (captured) {
+        input->setCaptureActive(false);
+    }
+    input->m_AbsoluteMouseMode = desktop;
+    if (captured) {
+        input->setCaptureActive(true);
+    }
+    reportMouseMode(desktop);
+}
+
+// The decoder is rebuilt from the session's settings whenever the render device resets -- upstream's
+// own path for a lost GPU -- so changing the setting and asking for that applies it, with one blink.
+static void rebuildDecoder()
+{
+    SDL_Event reset = {};
+    reset.type = SDL_RENDER_DEVICE_RESET;
+    SDL_PushEvent(&reset);
+}
+
+void BeamSessionControl::setDecoder(Session* session, StreamingPreferences::VideoDecoderSelection decoder)
+{
+    session->m_Preferences->videoDecoderSelection = decoder;
+    rebuildDecoder();
+    BeamStatus::state("decoder", decoder == StreamingPreferences::VDS_FORCE_HARDWARE ? "hardware"
+                               : decoder == StreamingPreferences::VDS_FORCE_SOFTWARE ? "software" : "auto");
+}
+
+void BeamSessionControl::setVsync(Session* session, bool vsync, bool pacing)
+{
+    session->m_Preferences->enableVsync = vsync;
+    session->m_Preferences->framePacing = vsync && pacing;
+    rebuildDecoder();
+    BeamStatus::state("vsync", !vsync ? "off" : pacing ? "pacing" : "on");
+}
+
+void BeamSessionControl::disconnect()
+{
+    // The quit key combination's own path, so Beam hears `beam: ending` as it does for that.
+    SDL_Event quit = {};
+    quit.type = SDL_QUIT;
+    quit.quit.timestamp = SDL_GetTicks();
+    SDL_PushEvent(&quit);
+}
+
+void BeamSessionControl::setCapture(Session* session, bool active) { session->m_InputHandler->setCaptureActive(active); }
+bool BeamSessionControl::captureActive(Session* session) { return session->m_InputHandler->isCaptureActive(); }
+void BeamSessionControl::raiseKeys(Session* session) { session->m_InputHandler->raiseAllKeys(); }
+SDL_Window* BeamSessionControl::window(Session* session) { return session->m_Window; }
+bool BeamSessionControl::mouseLocked(Session* session) { return session->m_InputHandler->m_PointerRegionLockActive; }
+bool BeamSessionControl::keyboardLocked(Session* session) { return session->m_InputHandler->m_CaptureSystemKeysMode != StreamingPreferences::CSK_OFF; }
+bool BeamSessionControl::muteInBackground(Session* session) { return session->m_Preferences->muteOnFocusLoss; }
+bool BeamSessionControl::mouseModeDesktop(Session* session) { return session->m_InputHandler->m_AbsoluteMouseMode; }
+StreamingPreferences::VideoDecoderSelection BeamSessionControl::decoder(Session* session) { return session->m_Preferences->videoDecoderSelection; }
+bool BeamSessionControl::vsync(Session* session) { return session->m_Preferences->enableVsync; }
+bool BeamSessionControl::framePacing(Session* session) { return session->m_Preferences->framePacing; }
+int BeamSessionControl::videoFormat(Session* session) { return session->m_ActiveVideoFormat; }
 
 bool BeamSessionControl::soundOff()
 {

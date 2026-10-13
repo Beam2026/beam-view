@@ -129,6 +129,17 @@ void OverlayManager::setOverlaySurface(OverlayType type, SDL_Surface* surface)
     }
 }
 
+void OverlayManager::setOverlayPosition(OverlayType type, int x, int y)
+{
+    // BEAM (P20): read by the renderer when it places the next surface.
+    m_Overlays[type].position = {x, y};
+}
+
+SDL_Point OverlayManager::getOverlayPosition(OverlayType type)
+{
+    return m_Overlays[type].position;
+}
+
 void OverlayManager::notifyOverlayUpdated(OverlayType type)
 {
     if (m_Renderer == nullptr) {

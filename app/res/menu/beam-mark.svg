@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="512" height="512" shape-rendering="crispEdges" role="img" aria-label="Beam: a beam of light entering a prism and splitting into a spectrum">
+<path fill="#0c0c0d" d="M15 5h2v1h-2zM14 6h1v2h-1zM17 6h1v2h-1zM13 8h1v2h-1zM18 8h1v2h-1zM12 10h1v2h-1zM19 10h1v2h-1zM28 10h3v1h-3zM25 11h3v1h-3zM31 11h1v12h-1zM11 12h1v2h-1zM15 12h2v2h-2zM20 12h1v1h-1zM22 12h3v1h-3zM20 13h2v1h-2zM10 14h1v2h-1zM14 14h1v2h-1zM17 14h1v2h-1zM21 14h1v2h-1zM7 16h3v1h-3zM13 16h1v2h-1zM18 16h1v2h-1zM22 16h1v2h-1zM4 17h3v1h-3zM3 18h1v2h-1zM12 18h1v2h-1zM19 18h1v2h-1zM23 18h1v2h-1zM7 19h2v1h-2zM4 20h4v1h-4zM11 20h1v2h-1zM20 20h1v2h-1zM24 20h1v2h-1zM7 21h1v1h-1zM6 22h1v2h-1zM10 22h12v1h-12zM25 22h3v1h-3zM25 23h1v1h-1zM28 23h3v1h-3zM5 24h1v2h-1zM26 24h1v2h-1zM6 26h20v1h-20z"/>
+<path fill="#ece5d6" d="M15 6h1v2h-1zM14 8h3v2h-3zM13 10h5v2h-5zM12 12h2v2h-2zM17 12h2v2h-2zM11 14h2v2h-2zM18 14h2v2h-2zM10 16h2v1h-2zM19 16h2v2h-2zM7 17h5v1h-5zM4 18h3v1h-3zM9 18h2v2h-2zM20 18h2v2h-2zM8 20h2v2h-2zM21 20h2v2h-2zM7 22h2v1h-2zM22 22h2v1h-2zM7 23h17v1h-17zM6 24h19v1h-19z"/>
+<path fill="#bfb7a8" d="M16 6h1v2h-1zM17 8h1v2h-1zM18 10h1v2h-1zM14 12h1v2h-1zM19 12h1v2h-1zM13 14h1v2h-1zM20 14h1v2h-1zM12 16h1v2h-1zM21 16h1v2h-1zM7 18h2v1h-2zM11 18h1v2h-1zM22 18h1v2h-1zM4 19h3v1h-3zM10 20h1v2h-1zM23 20h1v2h-1zM9 22h1v1h-1zM24 22h1v2h-1zM25 24h1v1h-1zM6 25h20v1h-20z"/>
+<path fill="#ff5f6d" d="M28 11h3v1h-3zM25 12h5v1h-5zM22 13h4v1h-4zM15 15h2v1h-2z"/>
+<path fill="#ffb35c" d="M30 12h1v1h-1zM26 13h5v1h-5zM22 14h7v1h-7zM22 15h1v1h-1z"/>
+<path fill="#f6ee6a" d="M29 14h2v1h-2zM23 15h8v1h-8zM14 16h4v1h-4zM23 16h2v1h-2z"/>
+<path fill="#5ef08a" d="M25 16h6v1h-6zM23 17h8v1h-8z"/>
+<path fill="#5ec8ff" d="M15 17h3v1h-3zM24 18h7v1h-7z"/>
+<path fill="#8f7bff" d="M14 17h1v1h-1zM17 18h2v1h-2zM24 19h7v1h-7zM25 20h6v1h-6z"/>
+<path fill="#d77bff" d="M16 18h1v1h-1zM18 19h1v1h-1zM25 21h6v1h-6zM28 22h3v1h-3z"/>
+</svg>

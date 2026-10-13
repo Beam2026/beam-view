@@ -177,6 +177,8 @@ SOURCES += \
     beamstatus.cpp \
     beam/control.cpp \
     beam/hud.cpp \
+    beam/menu.cpp \
+    beam/pixelart.cpp \
     cli/headless.cpp \
     cli/pair.cpp \
     main.cpp \
@@ -223,6 +225,8 @@ HEADERS += \
     beamstatus.h \
     beam/control.h \
     beam/hud.h \
+    beam/menu.h \
+    beam/pixelart.h \
     cli/headless.h \
     cli/pair.h \
     settings/compatfetcher.h \

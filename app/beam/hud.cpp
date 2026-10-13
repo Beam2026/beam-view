@@ -1,11 +1,9 @@
 #include "beam/hud.h"
 
 #include "beamstatus.h"
+#include "beam/pixelart.h"
 #include "streaming/session.h"
 #include "streaming/video/decoder.h"
-
-#include <QFile>
-#include <QRegularExpression>
 
 #include <cmath>
 #include <mutex>
@@ -13,11 +11,7 @@
 
 namespace {
 
-// One filled rectangle of an icon, in grid cells, and its colour.
-struct Cell {
-    int x, y, w, h;
-    Uint8 r, g, b;
-};
+using Cell = PixelArt::Cell;
 using Icon = std::vector<Cell>;
 
 enum Slot { SlotNetwork, SlotDecode, SlotEncode, SlotGamepad, SlotGamepadOff, SlotCount };
@@ -80,34 +74,9 @@ Steady s_Network, s_Decode, s_Encode;
 bool s_Gamepad = false;
 Uint32 s_GamepadUntil = 0;  // when the controller icon goes, after the mode turned on or off
 bool s_Demo = false;
+int s_LastPing = -1;
+double s_LastEncodeMs = -1, s_LastDecodeMs = -1;
 Icon s_Icons[SlotCount];
-
-Icon loadIcon(const char* path)
-{
-    Icon icon;
-    QFile file(path);
-    if (!file.open(QIODevice::ReadOnly)) {
-        SDL_LogWarn(SDL_LOG_CATEGORY_APPLICATION, "Beam HUD: cannot read %s", path);
-        return icon;
-    }
-    const QString svg = QString::fromUtf8(file.readAll());
-
-    // The icons are drawn as filled paths of rectangles: `<path fill="#rrggbb" d="Mx yhWvHh-Wz…">`.
-    static const QRegularExpression pathRe(QStringLiteral("<path fill=\"#([0-9a-fA-F]{6})\" d=\"([^\"]+)\""));
-    static const QRegularExpression rectRe(QStringLiteral("M(\\d+) (\\d+)h(\\d+)v(\\d+)h-\\d+z"));
-    for (auto paths = pathRe.globalMatch(svg); paths.hasNext();) {
-        const auto path = paths.next();
-        const uint rgb = path.captured(1).toUInt(nullptr, 16);
-        const QString d = path.captured(2);
-        for (auto rects = rectRe.globalMatch(d); rects.hasNext();) {
-            const auto rect = rects.next();
-            icon.push_back({rect.captured(1).toInt(), rect.captured(2).toInt(),
-                            rect.captured(3).toInt(), rect.captured(4).toInt(),
-                            Uint8(rgb >> 16), Uint8(rgb >> 8), Uint8(rgb)});
-        }
-    }
-    return icon;
-}
 
 Uint32 argb(Uint8 r, Uint8 g, Uint8 b, int a)
 {
@@ -232,7 +201,7 @@ void begin(SDL_Window* window, bool warnings)
     std::lock_guard<std::mutex> guard(s_Lock);
     if (s_Icons[0].empty()) {
         for (int i = 0; i < SlotCount; i++) {
-            s_Icons[i] = loadIcon(kIconFiles[i]);
+            s_Icons[i] = PixelArt::load(kIconFiles[i]);
         }
     }
     // 48 pixels on a 1080-line screen, 72 on 1440, 96 on 4K: whole multiples of the 24-cell grid.
@@ -275,6 +244,10 @@ void videoWindow(const _VIDEO_STATS& window, int streamFps)
     const double encodeUs = window.framesWithHostProcessingLatency
         ? window.totalHostProcessingLatency * 100.0 / window.framesWithHostProcessingLatency : 0;
 
+    s_LastPing = ping ? int(ping) : -1;
+    s_LastEncodeMs = window.framesWithHostProcessingLatency ? encodeUs / 1000 : -1;
+    s_LastDecodeMs = window.decodedFrames ? decodeUs / 1000 : -1;
+
     const bool networkPoor = s_ConnectionPoor || ping > kPingPoorMs || loss > kLossPoor;
     if (s_Network.feed(networkPoor ? 1 : 0)) {
         BeamStatus::notice("network", QString("%1 (ping %2 ms, %3% lost)").arg(s_Network.level ? "poor" : "off")
@@ -288,6 +261,14 @@ void videoWindow(const _VIDEO_STATS& window, int streamFps)
         BeamStatus::notice("encode", QString("%1 (%2 ms a frame, %3 ms allowed)").arg(s_Encode.level ? "on" : "off")
                            .arg(encodeUs / 1000, 0, 'f', 1).arg(frameUs / 1000, 0, 'f', 1));
     }
+}
+
+void latest(int& pingMs, double& encodeMs, double& decodeMs)
+{
+    std::lock_guard<std::mutex> guard(s_Lock);
+    pingMs = s_LastPing;
+    encodeMs = s_LastEncodeMs;
+    decodeMs = s_LastDecodeMs;
 }
 
 void demo(bool on)

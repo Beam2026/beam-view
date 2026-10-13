@@ -2,6 +2,7 @@
 #include "beamstatus.h"
 #include "beam/control.h"
 #include "beam/hud.h"
+#include "beam/menu.h"
 #include "settings/streamingpreferences.h"
 #include "streaming/streamutils.h"
 #include "backend/richpresencemanager.h"
@@ -2271,6 +2272,7 @@ void Session::exec()
     SDL_Event event;
     BeamSessionControl::listen(); // BEAM: calls on stdin, applied in this loop (P16)
     BeamHud::begin(m_Window, m_Preferences->connectionWarnings); // BEAM: the status icons (P19)
+    BeamMenu::begin(this); // BEAM: the Beam button and its list (P20)
     for (;;) {
 #ifdef Q_OS_WIN32
         // In embedded mode our size follows the parent's client area
@@ -2310,6 +2312,11 @@ void Session::exec()
             continue;
         }
 #endif
+        // BEAM (P20): the Beam button and its list see every event first, and keep their own.
+        if (BeamMenu::handleEvent(this, event)) {
+            continue;
+        }
+
         switch (event.type) {
         case SDL_QUIT:
             SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION,
@@ -2652,6 +2659,7 @@ void Session::exec()
 
 DispatchDeferredCleanup:
     BeamHud::end(); // BEAM (P19): no redraw may reach the session from here on
+    BeamMenu::end(); // BEAM (P20)
 
     // Switch back to synchronous logging mode
     StreamUtils::exitAsyncLoggingMode();

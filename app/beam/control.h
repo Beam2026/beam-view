@@ -87,5 +87,4 @@ public:
     static void reportCursor(bool shown);
     static void reportMinimized();
     static void reportGamepadMouse(bool active);
-
 };

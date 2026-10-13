@@ -19,9 +19,9 @@ std::vector<Cell> load(const char* path)
     static const QRegularExpression pathRe(QStringLiteral("<path fill=\"#([0-9a-fA-F]{6})\" d=\"([^\"]+)\""));
     static const QRegularExpression rectRe(QStringLiteral("M(\\d+) (\\d+)h(\\d+)v(\\d+)h-\\d+z"));
     for (auto paths = pathRe.globalMatch(svg); paths.hasNext();) {
-        const auto path = paths.next();
-        const uint rgb = path.captured(1).toUInt(nullptr, 16);
-        for (auto rects = rectRe.globalMatch(path.captured(2)); rects.hasNext();) {
+        const auto shape = paths.next();
+        const uint rgb = shape.captured(1).toUInt(nullptr, 16);
+        for (auto rects = rectRe.globalMatch(shape.captured(2)); rects.hasNext();) {
             const auto rect = rects.next();
             cells.push_back({rect.captured(1).toInt(), rect.captured(2).toInt(),
                              rect.captured(3).toInt(), rect.captured(4).toInt(),

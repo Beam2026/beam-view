@@ -44,6 +44,12 @@ const QColor kDanger(0xf0, 0x6a, 0x76);
 
 constexpr Uint32 kRefreshMs = 1000;  // the numbers, and the button's place after anything moved it
 
+// The button in game mouse mode with input captured: the cursor is the game's there and cannot reach
+// it, so it is drawn faded rather than taken away -- taking it away read as the button vanishing
+// every time Ctrl+Alt+Shift+M went to game mode. Ctrl+Alt+Shift+B, or releasing the mouse with
+// Ctrl+Alt+Shift+Z, makes it usable again.
+constexpr double kFadedOpacity = 0.3;
+
 // ----------------------------------------------------------------------------------- the rows ---
 
 enum Item {
@@ -54,6 +60,10 @@ enum Item {
 };
 
 enum Sub { SubNone, SubCodec, SubDecoder, SubVsync, SubLocks };
+
+// The Decoder list's choices, in its order.
+const StreamingPreferences::VideoDecoderSelection kDecoders[] = {
+    StreamingPreferences::VDS_AUTO, StreamingPreferences::VDS_FORCE_HARDWARE, StreamingPreferences::VDS_FORCE_SOFTWARE};
 
 struct Row {
     Item item;
@@ -146,13 +156,21 @@ QPoint toPixels(int x, int y)
     return QPoint(w > 0 ? x * pw / w : x, h > 0 ? y * ph / h : y);
 }
 
-bool buttonVisible()
+// Whether the button can be used: the cursor reaches it in desktop mouse mode, with input released,
+// or with the list open.
+bool buttonUsable()
 {
     if (s_Hidden) {
         return false;
     }
-    // With the cursor: desktop mouse mode, input released, or the list open.
     return s_Open || BeamSessionControl::mouseModeDesktop(s_Session) || !BeamSessionControl::captureActive(s_Session);
+}
+
+// Whether the button is on screen at all: always, unless "Hide button" took it away. When it cannot
+// be used it is drawn faded (`kFadedOpacity`).
+bool buttonShown()
+{
+    return !s_Hidden;
 }
 
 QString codecInUse()
@@ -273,10 +291,9 @@ void layout()
     }
     else if (s_Sub == SubDecoder) {
         const auto current = BeamSessionControl::decoder(s_Session);
-        const StreamingPreferences::VideoDecoderSelection choices[] = {
-            StreamingPreferences::VDS_AUTO, StreamingPreferences::VDS_FORCE_HARDWARE, StreamingPreferences::VDS_FORCE_SOFTWARE};
-        for (int i = 0; i < 3; i++) {
-            subRows.push_back({ItemChoice, i, nullptr, decoderName(choices[i]), "", false, true, current == choices[i], false, {}});
+        int i = 0;
+        for (const auto decoder : kDecoders) {
+            subRows.push_back({ItemChoice, i++, nullptr, decoderName(decoder), "", false, true, current == decoder, false, {}});
         }
     }
     else if (s_Sub == SubVsync) {
@@ -399,9 +416,17 @@ void drawNumbers(QPainter& p)
 
 void drawButton(QPainter& p)
 {
+    // Faded while the cursor cannot reach it, and never lit: in game mode the last cursor position
+    // is stale, so it would light the button as hovered for no reason.
+    const bool usable = buttonUsable();
+    p.save();
+    if (!usable) {
+        p.setOpacity(kFadedOpacity);
+    }
+
     QPainterPath path;
     path.addRoundedRect(QRectF(s_Button), px(kTileRadius), px(kTileRadius));
-    p.fillPath(path, s_Open || s_Button.contains(s_Mouse) ? kSpacePressed : kSpace);
+    p.fillPath(path, s_Open || (usable && s_Button.contains(s_Mouse)) ? kSpacePressed : kSpace);
 
     p.setPen(QPen(kBorder, 1));
     p.drawPath(path);
@@ -417,7 +442,7 @@ void drawButton(QPainter& p)
     for (const PixelArt::Cell& c : s_Mark) {
         p.fillRect(x0 + edge(c.x), y0 + edge(c.y), edge(c.x + c.w) - edge(c.x), edge(c.y + c.h) - edge(c.y), QColor(c.r, c.g, c.b));
     }
-    p.setRenderHint(QPainter::Antialiasing, true);
+    p.restore();
 }
 
 void redraw()
@@ -426,8 +451,7 @@ void redraw()
         return;
     }
     Overlay::OverlayManager& overlays = s_Session->getOverlayManager();
-    const bool visible = buttonVisible();
-    if (!visible && !s_Open) {
+    if (!buttonShown() && !s_Open) {
         if (s_Shown) {
             overlays.setOverlaySurface(Overlay::OverlayBeamMenu, nullptr);
             s_Shown = false;
@@ -535,9 +559,7 @@ void activate(const Row& row)
         break;
     case ItemChoice:
         if (s_Sub == SubDecoder) {
-            const StreamingPreferences::VideoDecoderSelection choices[] = {
-                StreamingPreferences::VDS_AUTO, StreamingPreferences::VDS_FORCE_HARDWARE, StreamingPreferences::VDS_FORCE_SOFTWARE};
-            BeamSessionControl::setDecoder(s, choices[row.choice]);
+            BeamSessionControl::setDecoder(s, kDecoders[row.choice]);
         }
         else if (s_Sub == SubVsync) {
             BeamSessionControl::setVsync(s, row.choice > 0, row.choice == 2);
@@ -588,10 +610,18 @@ Uint32 postRefresh(Uint32 interval, void*)
     return interval;
 }
 
-bool isHotkey(const SDL_KeyboardEvent& key)
+// Any Ctrl+Alt+Shift combination: the mouse mode (M) and capture (Z) ones change whether the button
+// can be used, and they are handled after this sees the key -- so a redraw is queued behind them.
+bool isCombo(const SDL_KeyboardEvent& key)
 {
     const Uint16 mods = key.keysym.mod;
-    return key.keysym.sym == SDLK_b && (mods & KMOD_CTRL) && (mods & KMOD_ALT) && (mods & KMOD_SHIFT);
+    return (mods & KMOD_CTRL) && (mods & KMOD_ALT) && (mods & KMOD_SHIFT);
+}
+
+// Ctrl+Alt+Shift+B: the list, open or closed, whatever the button's state.
+bool isHotkey(const SDL_KeyboardEvent& key)
+{
+    return key.keysym.sym == SDLK_b && isCombo(key);
 }
 
 } // namespace
@@ -646,6 +676,9 @@ bool handleEvent(Session* session, const SDL_Event& event)
         return true;
 
     case SDL_KEYDOWN:
+        if (isCombo(event.key) && !event.key.repeat) {
+            postRefresh(0, nullptr);
+        }
         if (isHotkey(event.key)) {
             if (!event.key.repeat) {
                 if (s_Open) closeList(); else openList();
@@ -706,7 +739,7 @@ bool handleEvent(Session* session, const SDL_Event& event)
             }
             return true;
         }
-        if (buttonVisible() && s_Button.contains(at) != s_Button.contains(was)) {
+        if (buttonUsable() && s_Button.contains(at) != s_Button.contains(was)) {
             redraw();
         }
         return s_Pressing;
@@ -715,7 +748,7 @@ bool handleEvent(Session* session, const SDL_Event& event)
     case SDL_MOUSEBUTTONDOWN: {
         const QPoint at = toPixels(event.button.x, event.button.y);
         s_Mouse = at;
-        const bool onButton = buttonVisible() && s_Button.contains(at);
+        const bool onButton = buttonUsable() && s_Button.contains(at);
         if (!s_Open && !onButton) {
             return false;
         }

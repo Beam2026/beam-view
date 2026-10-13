@@ -139,8 +139,11 @@ all. The detail is P19 in [`patches.md`](patches.md).
 
 Beam's roadmap 3.1.
 
-- **The button**: Beam's mark, small, at an edge of the stream. It is shown only while the mouse is
-  free (`Ctrl+Alt+Shift+Z` ungrabs it today), so it never sits under a game's cursor.
+- **The button**: Beam's mark, small, at an edge of the stream. Usable while the cursor can reach
+  it -- desktop mouse mode, input released, or its list open. In game mouse mode with input
+  captured it stays on screen **faded** (30%) and cannot be clicked: hiding it there read as the
+  button vanishing at every `Ctrl+Alt+Shift+M` (seen 2026-10-13). `Ctrl+Alt+Shift+B` or
+  `Ctrl+Alt+Shift+Z` makes it usable again.
 - **The list it opens**:
   - **Performance** -- the graphs (step 6) on or off
   - **Window** -- full screen or windowed

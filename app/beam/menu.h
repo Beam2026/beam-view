@@ -8,8 +8,9 @@ class Session;
 //
 // The button is Beam's mark on a tile of Beam's own dark background. It sits on the top, left or
 // right edge of the stream -- top centre at first -- and is dragged along them, snapping to the
-// nearest when let go. It shows whenever the cursor does (desktop mouse mode, or input released);
-// in game mouse mode, and after "Hide button", Ctrl+Alt+Shift+B opens the list and brings it back.
+// nearest when let go. It can be used whenever the cursor can reach it (desktop mouse mode, or input
+// released); in game mouse mode it stays on screen faded, and cannot be clicked. "Hide button" takes
+// it away. Ctrl+Alt+Shift+B opens the list at any time, and brings a hidden button back.
 //
 // The list is drawn like Beam's Help list: Hide button, Window, Sound, Codec, Decoder, V-Sync, Mute
 // when not in front, Mouse mode, Input locks and Disconnect, and at its bottom the last second's

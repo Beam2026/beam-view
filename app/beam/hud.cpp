@@ -160,8 +160,8 @@ SDL_Surface* compose(const std::vector<Slot>& onScreen, Uint32 now)
 
         roundedTile(x0, y0, tile, kTileRadius * s, onScreen[i] == SlotGamepadOff ? kRed : kIvory, alpha);
 
-        // The icon, each cell's edges on whole pixels: never blurred, though at 1.5 times some cells
-        // are a pixel wider than others.
+        // The icon, each cell's edges on whole pixels: never blurred, though at a scale that is not a
+        // whole number (1.75 times its grid on a 1080-line screen) some cells are a pixel wider.
         const int ix = x0 + pad;
         const int iy = y0 + pad;
         auto edge = [cell](int cells) { return int(std::lround(cells * cell)); };

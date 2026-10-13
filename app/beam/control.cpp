@@ -228,6 +228,11 @@ void BeamSessionControl::reportMinimized()
     BeamStatus::state("window", "minimized");
 }
 
+void BeamSessionControl::reportGamepadMouse(bool active)
+{
+    BeamStatus::state("gamepad-mouse", onOff(active));
+}
+
 void BeamSessionControl::reportWindow(Session* session)
 {
     BeamStatus::state("window", isFullScreen(session) ? "full" : "windowed");

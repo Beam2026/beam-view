@@ -1674,6 +1674,7 @@ void Session::notifyMouseEmulationMode(bool enabled)
 {
     m_MouseEmulationRefCount += enabled ? 1 : -1;
     SDL_assert(m_MouseEmulationRefCount >= 0);
+    BeamSessionControl::reportGamepadMouse(m_MouseEmulationRefCount > 0); // BEAM (P17)
 
     // We re-use the status update overlay for mouse mode notification
     if (m_MouseEmulationRefCount > 0) {

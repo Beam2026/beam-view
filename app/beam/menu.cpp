@@ -27,10 +27,10 @@ namespace {
 // Sizes on a 1080-line screen, scaled with the window above that. Beam's Help list -- a near-black
 // panel, an uppercase heading, icons beside each row, rows that light on hover -- drawn larger than
 // in Beam, to be read over a game from across a desk.
-constexpr double kTile = 68, kTileRadius = 14, kMarkInset = 5, kEdgeMargin = 10, kDragSlop = 5;
-constexpr double kGap = 10, kListWidth = 340, kSubWidth = 230, kPad = 6, kRadius = 8;
-constexpr double kHeadingH = 30, kStatsH = 58, kRowH = 40, kRowRadius = 6, kIcon = 18, kText = 16, kLabel = 12;
-constexpr double kInset = 10;  // from a row's edge to its icon, and from its value to the edge
+constexpr double kTile = 64, kTileRadius = 13, kMarkInset = 3, kEdgeMargin = 10, kDragSlop = 5;
+constexpr double kGap = 9, kListWidth = 306, kSubWidth = 208, kPad = 5, kRadius = 7;
+constexpr double kHeadingH = 27, kStatsH = 52, kRowH = 36, kRowRadius = 5, kIcon = 16, kText = 14.5, kLabel = 11;
+constexpr double kInset = 9;  // from a row's edge to its icon, and from its value to the edge
 
 const QColor kIvory(255, 255, 240);           // the button's tile: ivory, like the status icons', but solid
 const QColor kIvoryPressed(238, 238, 222);    // the same, a shade darker, under the cursor or with the list open

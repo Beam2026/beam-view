@@ -25,8 +25,8 @@ const char* const kIconFiles[SlotCount] = {
 };
 
 constexpr int kGrid = 24;            // the icons' grid
-constexpr int kTilePadding = 4;      // around an icon, in grid cells
-constexpr int kTileGap = 6;          // between tiles, in grid cells
+constexpr int kTilePadding = 2;      // around an icon, in grid cells
+constexpr int kTileGap = 5;          // between tiles, in grid cells
 constexpr int kTileRadius = 6;       // the tile's rounded corners, in grid cells
 constexpr int kMargin = 8;           // from the screen's corner, in grid cells
 const SDL_Color kIvory = {255, 255, 240, 204};     // the tile: ivory at 80%, a warning's brightest
